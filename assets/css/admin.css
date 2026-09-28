@@ -1,0 +1,80 @@
+/* BorsFlow Forms – shared admin styles (kept small; relies on core wp-admin styles). */
+
+.borsflow-pill {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 10px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 12px;
+	line-height: 18px;
+	white-space: nowrap;
+}
+
+.borsflow-pill--synced {
+	background: #edfaef;
+	color: #00631a;
+}
+
+.borsflow-pill--pending {
+	background: #fcf9e8;
+	color: #614a00;
+}
+
+.borsflow-pill--failed {
+	background: #fcf0f1;
+	color: #8a2424;
+}
+
+.borsflow-pill--skipped {
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.borsflow-error-text {
+	color: #b32d2e;
+}
+
+.borsflow-shortcode {
+	width: 100%;
+	max-width: 240px;
+}
+
+tr.borsflow-unread td,
+tr.borsflow-unread th {
+	background: #fcf9e8;
+}
+
+tr.borsflow-unread .row-title {
+	font-weight: 700;
+}
+
+.borsflow-filters input[type="date"] {
+	vertical-align: middle;
+}
+
+.borsflow-filters label:not(.screen-reader-text) {
+	margin: 0 2px 0 6px;
+	vertical-align: middle;
+}
+
+.borsflow-detail-table th {
+	width: 30%;
+}
+
+.borsflow-meta-list li {
+	word-break: break-word;
+}
+
+.borsflow-test-result {
+	margin-left: 8px;
+	font-weight: 600;
+}
+
+.borsflow-test-result.is-success {
+	color: #00631a;
+}
+
+.borsflow-test-result.is-error {
+	color: #b32d2e;
+}

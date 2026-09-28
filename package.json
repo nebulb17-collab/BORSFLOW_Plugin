@@ -1,0 +1,13 @@
+{
+  "name": "borsflow-forms",
+  "private": true,
+  "description": "Dev tooling for BorsFlow Forms (end-to-end tests). The plugin itself has no JS build step.",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "lint:js": "node --check assets/js/admin.js && node --check assets/js/block.js && node --check assets/js/builder.js && node --check assets/js/frontend.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
