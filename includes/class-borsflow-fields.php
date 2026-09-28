@@ -21,23 +21,93 @@ class BorsFlow_Fields {
 		$text_like = array( 'placeholder', 'default', 'min_length', 'max_length', 'pattern' );
 
 		$types = array(
-			'text'        => array( 'label' => __( 'Text', 'borsflow-forms' ), 'icon' => 'editor-textcolor', 'supports' => $text_like ),
-			'email'       => array( 'label' => __( 'Email', 'borsflow-forms' ), 'icon' => 'email', 'supports' => array( 'placeholder', 'default', 'max_length', 'pattern' ) ),
-			'phone'       => array( 'label' => __( 'Phone', 'borsflow-forms' ), 'icon' => 'phone', 'supports' => $text_like ),
-			'number'      => array( 'label' => __( 'Number', 'borsflow-forms' ), 'icon' => 'calculator', 'supports' => array( 'placeholder', 'default', 'min', 'max', 'step' ) ),
-			'textarea'    => array( 'label' => __( 'Paragraph text', 'borsflow-forms' ), 'icon' => 'editor-paragraph', 'supports' => array( 'placeholder', 'default', 'min_length', 'max_length', 'pattern', 'rows' ) ),
-			'select'      => array( 'label' => __( 'Dropdown', 'borsflow-forms' ), 'icon' => 'arrow-down-alt2', 'supports' => array( 'placeholder', 'options' ) ),
-			'multiselect' => array( 'label' => __( 'Multi-select', 'borsflow-forms' ), 'icon' => 'list-view', 'supports' => array( 'options' ) ),
-			'radio'       => array( 'label' => __( 'Radio group', 'borsflow-forms' ), 'icon' => 'marker', 'supports' => array( 'options' ) ),
-			'checkboxes'  => array( 'label' => __( 'Checkbox group', 'borsflow-forms' ), 'icon' => 'yes-alt', 'supports' => array( 'options' ) ),
-			'consent'     => array( 'label' => __( 'Consent checkbox', 'borsflow-forms' ), 'icon' => 'saved', 'supports' => array( 'content' ) ),
-			'date'        => array( 'label' => __( 'Date', 'borsflow-forms' ), 'icon' => 'calendar-alt', 'supports' => array( 'default', 'min', 'max' ) ),
-			'time'        => array( 'label' => __( 'Time', 'borsflow-forms' ), 'icon' => 'clock', 'supports' => array( 'default', 'min', 'max' ) ),
-			'file'        => array( 'label' => __( 'File upload', 'borsflow-forms' ), 'icon' => 'upload', 'supports' => array( 'accept', 'max_size_mb' ) ),
-			'url'         => array( 'label' => __( 'Website / URL', 'borsflow-forms' ), 'icon' => 'admin-links', 'supports' => array( 'placeholder', 'default', 'max_length', 'pattern' ) ),
-			'hidden'      => array( 'label' => __( 'Hidden field', 'borsflow-forms' ), 'icon' => 'hidden', 'supports' => array( 'default' ) ),
-			'heading'     => array( 'label' => __( 'Section heading', 'borsflow-forms' ), 'icon' => 'heading', 'supports' => array( 'content', 'level' ), 'layout' => true ),
-			'html'        => array( 'label' => __( 'Paragraph / HTML', 'borsflow-forms' ), 'icon' => 'editor-code', 'supports' => array( 'content' ), 'layout' => true ),
+			'text'        => array(
+				'label'    => __( 'Text', 'borsflow-forms' ),
+				'icon'     => 'editor-textcolor',
+				'supports' => $text_like,
+			),
+			'email'       => array(
+				'label'    => __( 'Email', 'borsflow-forms' ),
+				'icon'     => 'email',
+				'supports' => array( 'placeholder', 'default', 'max_length', 'pattern' ),
+			),
+			'phone'       => array(
+				'label'    => __( 'Phone', 'borsflow-forms' ),
+				'icon'     => 'phone',
+				'supports' => $text_like,
+			),
+			'number'      => array(
+				'label'    => __( 'Number', 'borsflow-forms' ),
+				'icon'     => 'calculator',
+				'supports' => array( 'placeholder', 'default', 'min', 'max', 'step' ),
+			),
+			'textarea'    => array(
+				'label'    => __( 'Paragraph text', 'borsflow-forms' ),
+				'icon'     => 'editor-paragraph',
+				'supports' => array( 'placeholder', 'default', 'min_length', 'max_length', 'pattern', 'rows' ),
+			),
+			'select'      => array(
+				'label'    => __( 'Dropdown', 'borsflow-forms' ),
+				'icon'     => 'arrow-down-alt2',
+				'supports' => array( 'placeholder', 'options' ),
+			),
+			'multiselect' => array(
+				'label'    => __( 'Multi-select', 'borsflow-forms' ),
+				'icon'     => 'list-view',
+				'supports' => array( 'options' ),
+			),
+			'radio'       => array(
+				'label'    => __( 'Radio group', 'borsflow-forms' ),
+				'icon'     => 'marker',
+				'supports' => array( 'options' ),
+			),
+			'checkboxes'  => array(
+				'label'    => __( 'Checkbox group', 'borsflow-forms' ),
+				'icon'     => 'yes-alt',
+				'supports' => array( 'options' ),
+			),
+			'consent'     => array(
+				'label'    => __( 'Consent checkbox', 'borsflow-forms' ),
+				'icon'     => 'saved',
+				'supports' => array( 'content' ),
+			),
+			'date'        => array(
+				'label'    => __( 'Date', 'borsflow-forms' ),
+				'icon'     => 'calendar-alt',
+				'supports' => array( 'default', 'min', 'max' ),
+			),
+			'time'        => array(
+				'label'    => __( 'Time', 'borsflow-forms' ),
+				'icon'     => 'clock',
+				'supports' => array( 'default', 'min', 'max' ),
+			),
+			'file'        => array(
+				'label'    => __( 'File upload', 'borsflow-forms' ),
+				'icon'     => 'upload',
+				'supports' => array( 'accept', 'max_size_mb' ),
+			),
+			'url'         => array(
+				'label'    => __( 'Website / URL', 'borsflow-forms' ),
+				'icon'     => 'admin-links',
+				'supports' => array( 'placeholder', 'default', 'max_length', 'pattern' ),
+			),
+			'hidden'      => array(
+				'label'    => __( 'Hidden field', 'borsflow-forms' ),
+				'icon'     => 'hidden',
+				'supports' => array( 'default' ),
+			),
+			'heading'     => array(
+				'label'    => __( 'Section heading', 'borsflow-forms' ),
+				'icon'     => 'heading',
+				'supports' => array( 'content', 'level' ),
+				'layout'   => true,
+			),
+			'html'        => array(
+				'label'    => __( 'Paragraph / HTML', 'borsflow-forms' ),
+				'icon'     => 'editor-code',
+				'supports' => array( 'content' ),
+				'layout'   => true,
+			),
 		);
 
 		foreach ( $types as $type => &$def ) {
@@ -176,8 +246,8 @@ class BorsFlow_Fields {
 			}
 		}
 
-		$cond               = is_array( $raw['conditions'] ?? null ) ? $raw['conditions'] : array();
-		$f['conditions']    = array(
+		$cond            = is_array( $raw['conditions'] ?? null ) ? $raw['conditions'] : array();
+		$f['conditions'] = array(
 			'enabled' => ! empty( $cond['enabled'] ),
 			'action'  => 'hide' === ( $cond['action'] ?? '' ) ? 'hide' : 'show',
 			'logic'   => 'or' === ( $cond['logic'] ?? '' ) ? 'or' : 'and',
@@ -216,7 +286,7 @@ class BorsFlow_Fields {
 	 * @return string
 	 */
 	private static function sanitize_pattern( $pattern ) {
-		$pattern = trim( wp_unslash( (string) $pattern ) );
+		$pattern = trim( (string) $pattern ); // Never wp_unslash(): it would eat regex backslashes like \d.
 		if ( '' === $pattern || strlen( $pattern ) > 500 ) {
 			return '';
 		}
@@ -484,8 +554,8 @@ class BorsFlow_Fields {
 	 * A field whose rules reference a hidden field sees that field's value as
 	 * empty, so chains of conditions collapse the same way they do in the browser.
 	 *
-	 * @param array[]              $fields Field definitions.
-	 * @param array<string,mixed>  $values Values keyed by field key.
+	 * @param array[]             $fields Field definitions.
+	 * @param array<string,mixed> $values Values keyed by field key.
 	 * @return array<string,bool> Visibility keyed by field id.
 	 */
 	public static function visibility( $fields, $values ) {
@@ -502,7 +572,8 @@ class BorsFlow_Fields {
 			}
 			$c = $field['conditions'];
 			if ( empty( $c['enabled'] ) || empty( $c['rules'] ) || $depth > 20 ) {
-				return $memo[ $field['id'] ] = true;
+				$memo[ $field['id'] ] = true;
+				return true;
 			}
 			$results = array();
 			foreach ( $c['rules'] as $rule ) {
@@ -513,8 +584,9 @@ class BorsFlow_Fields {
 				}
 				$results[] = self::rule_matches( $rule, $actual );
 			}
-			$match = 'or' === $c['logic'] ? in_array( true, $results, true ) : ! in_array( false, $results, true );
-			return $memo[ $field['id'] ] = ( 'show' === $c['action'] ) ? $match : ! $match;
+			$match                = 'or' === $c['logic'] ? in_array( true, $results, true ) : ! in_array( false, $results, true );
+			$memo[ $field['id'] ] = ( 'show' === $c['action'] ) ? $match : ! $match;
+			return $memo[ $field['id'] ];
 		};
 
 		$out = array();

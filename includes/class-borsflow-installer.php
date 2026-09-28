@@ -21,6 +21,7 @@ class BorsFlow_Installer {
 	 */
 	private static $migrations = array(
 		'1.0.0' => 'migrate_1_0_0',
+		'1.1.0' => 'migrate_1_1_0',
 	);
 
 	/**
@@ -30,7 +31,12 @@ class BorsFlow_Installer {
 	 */
 	public static function activate( $network_wide = false ) {
 		if ( is_multisite() && $network_wide ) {
-			foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $site_id ) {
+			foreach ( get_sites(
+				array(
+					'fields' => 'ids',
+					'number' => 0,
+				)
+			) as $site_id ) {
 				switch_to_blog( $site_id );
 				self::install();
 				restore_current_blog();
@@ -58,6 +64,7 @@ class BorsFlow_Installer {
 	 */
 	public static function deactivate() {
 		wp_unschedule_hook( BorsFlow_Sync::HOOK );
+		wp_unschedule_hook( BorsFlow_Mailer::HOOK );
 		wp_unschedule_hook( 'borsflow_daily_maintenance' );
 	}
 
@@ -89,6 +96,15 @@ class BorsFlow_Installer {
 	}
 
 	/**
+	 * 1.1.0 moved emails to WP-Cron and added `emails_sent`. Rows that existed
+	 * before were emailed synchronously, so mark them sent to avoid re-sending.
+	 */
+	private static function migrate_1_1_0() {
+		global $wpdb;
+		$wpdb->query( 'UPDATE ' . BorsFlow_Submissions::table() . ' SET emails_sent = 1' ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- no user input.
+	}
+
+	/**
 	 * Create or update tables with dbDelta.
 	 */
 	public static function create_tables() {
@@ -111,6 +127,7 @@ class BorsFlow_Installer {
   page_url text NULL,
   created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
   is_read tinyint(1) unsigned NOT NULL DEFAULT 0,
+  emails_sent tinyint(1) unsigned NOT NULL DEFAULT 0,
   sync_status varchar(20) NOT NULL DEFAULT 'pending',
   sync_attempts smallint(5) unsigned NOT NULL DEFAULT 0,
   last_error text NULL,

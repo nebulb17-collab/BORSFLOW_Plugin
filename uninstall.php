@@ -22,6 +22,7 @@ function borsflow_uninstall_site() {
 	$wipe     = is_array( $settings ) && ! empty( $settings['delete_on_uninstall'] );
 
 	wp_unschedule_hook( 'borsflow_sync_submission' );
+	wp_unschedule_hook( 'borsflow_send_notifications' );
 	wp_unschedule_hook( 'borsflow_daily_maintenance' );
 
 	foreach ( wp_roles()->role_objects as $role ) {
@@ -78,7 +79,12 @@ function borsflow_uninstall_rmdir( $dir ) {
 }
 
 if ( is_multisite() ) {
-	foreach ( get_sites( array( 'fields' => 'ids', 'number' => 0 ) ) as $borsflow_site_id ) {
+	foreach ( get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	) as $borsflow_site_id ) {
 		switch_to_blog( $borsflow_site_id );
 		borsflow_uninstall_site();
 		restore_current_blog();

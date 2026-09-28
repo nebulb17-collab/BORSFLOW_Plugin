@@ -4,6 +4,25 @@ All notable changes to BorsFlow Forms are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-09-29
+
+### Added
+- Builder: renaming a field key carries the change to conditional rules, CRM mapping, Reply-To/autoresponder bindings and `{key}` merge tags. Deleting a referenced field lists what uses it and removes those references. On save, the server also drops conditional rules that point at missing fields.
+- Background email delivery via WP-Cron (`borsflow_send_notifications`), claimed atomically so each submission is emailed at most once, with a daily sweep for lost events. Can be switched back to synchronous.
+- "Visitor IP source" setting (CF-Connecting-IP, X-Forwarded-For, X-Real-IP, True-Client-IP). For X-Forwarded-For the right-most public address is used, so a client-supplied value can't be used to spoof.
+- Form token lifetime (default 48 h) plus `GET /borsflow/v1/forms/{id}/token`. The front end swaps in a fresh token when a cached page's token is past half its lifetime.
+- Personal data exporter and eraser, a "store IP and user agent" toggle, and privacy policy guide text.
+- `BORSFLOW_API_KEY`, `BORSFLOW_CRM_BASE_URL`, `BORSFLOW_RECAPTCHA_SECRET` and `BORSFLOW_TURNSTILE_SECRET` wp-config constants. They override settings and are never persisted.
+- PHPUnit integration suite (WordPress on SQLite, no MySQL needed), Playwright end-to-end suite, WPCS/PHPCompatibility ruleset, GitHub Actions CI.
+
+### Changed
+- DB version 1.1.0 adds `emails_sent` to the submissions table. The migration marks existing rows as already emailed.
+
+### Fixed
+- Regex patterns lost backslashes on save because of an extra `wp_unslash()`.
+- `{all_fields}` rendered empty in notification and autoresponder bodies.
+- Settings sanitization raised an undefined-index notice when the proxy header field was absent.
+
 ## [1.0.0] - 2026-09-28
 
 ### Added

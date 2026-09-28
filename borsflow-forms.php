@@ -3,7 +3,7 @@
  * Plugin Name:       BorsFlow Forms
  * Plugin URI:        https://borsflow.com/wordpress
  * Description:       Build custom contact forms, collect submissions in wp-admin, and sync every lead to BorsFlow CRM.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            BorsFlow
@@ -18,8 +18,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BORSFLOW_VERSION', '1.0.0' );
-define( 'BORSFLOW_DB_VERSION', '1.0.0' );
+define( 'BORSFLOW_VERSION', '1.1.0' );
+define( 'BORSFLOW_DB_VERSION', '1.1.0' );
 define( 'BORSFLOW_FILE', __FILE__ );
 define( 'BORSFLOW_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BORSFLOW_URL', plugin_dir_url( __FILE__ ) );
@@ -28,11 +28,11 @@ define( 'BORSFLOW_URL', plugin_dir_url( __FILE__ ) );
  * Class autoloader: BorsFlow_Foo_Bar => includes/{,admin/,integrations/}class-borsflow-foo-bar.php
  */
 spl_autoload_register(
-	static function ( $class ) {
-		if ( 0 !== strpos( $class, 'BorsFlow_' ) ) {
+	static function ( $class_name ) {
+		if ( 0 !== strpos( $class_name, 'BorsFlow_' ) ) {
 			return;
 		}
-		$file = 'class-' . strtolower( str_replace( '_', '-', $class ) ) . '.php';
+		$file = 'class-' . strtolower( str_replace( '_', '-', $class_name ) ) . '.php';
 		foreach ( array( 'includes/', 'includes/admin/', 'includes/integrations/' ) as $dir ) {
 			$path = BORSFLOW_DIR . $dir . $file;
 			if ( is_readable( $path ) ) {

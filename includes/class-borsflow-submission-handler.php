@@ -65,8 +65,8 @@ class BorsFlow_Submission_Handler {
 			}
 			$values[ $f['key'] ] = BorsFlow_Fields::sanitize_value( $f, $raw_values[ $f['key'] ] ?? null );
 		}
-		$visible           = BorsFlow_Fields::visibility( $form['fields'], $values );
-		$result['values']  = array_filter( $values, static fn( $v ) => 'file' !== $v );
+		$visible          = BorsFlow_Fields::visibility( $form['fields'], $values );
+		$result['values'] = array_filter( $values, static fn( $v ) => 'file' !== $v );
 
 		// Pass 2: validate visible fields. Hidden-by-logic fields are neither required nor stored.
 		$errors = array();
@@ -104,7 +104,10 @@ class BorsFlow_Submission_Handler {
 				} else {
 					$values[ $f['key'] ] = $stored ? $stored : '';
 					if ( $stored ) {
-						$stored_files[] = array( 'type' => 'file', 'value' => $stored );
+						$stored_files[] = array(
+							'type'  => 'file',
+							'value' => $stored,
+						);
 					}
 				}
 			}
@@ -138,8 +141,9 @@ class BorsFlow_Submission_Handler {
 			array(
 				'form_id'     => $form['id'],
 				'payload'     => $payload,
-				'ip'          => $meta['ip'] ?? '',
-				'user_agent'  => $meta['user_agent'] ?? '',
+				// The IP is still used (in memory) for rate limiting when storage is off.
+				'ip'          => BorsFlow_Settings::get( 'store_ip' ) ? ( $meta['ip'] ?? '' ) : '',
+				'user_agent'  => BorsFlow_Settings::get( 'store_ip' ) ? ( $meta['user_agent'] ?? '' ) : '',
 				'referrer'    => esc_url_raw( (string) ( $params['bf_referrer'] ?? ( $meta['referrer'] ?? '' ) ) ),
 				'page_url'    => $page_url,
 				'sync_status' => $crm_on ? 'pending' : 'skipped',
@@ -159,7 +163,12 @@ class BorsFlow_Submission_Handler {
 			BorsFlow_Sync::schedule( $id, 0 );
 		}
 
-		BorsFlow_Mailer::send_notifications( $form, $payload, $id, $page_url );
+		// Emails go through WP-Cron by default so a slow SMTP server never delays the response.
+		if ( BorsFlow_Settings::get( 'email_async' ) ) {
+			BorsFlow_Mailer::queue( $id );
+		} elseif ( BorsFlow_Submissions::claim_emails( $id ) ) {
+			BorsFlow_Mailer::send_notifications( $form, $payload, $id, $page_url );
+		}
 
 		/**
 		 * Fires after a submission is stored.
@@ -235,10 +244,13 @@ class BorsFlow_Submission_Handler {
 	 * admin-post fallback for browsers without JavaScript.
 	 */
 	public static function handle_post_fallback() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- public form; protected by the signed form token in BorsFlow_Spam.
+		// Public form: anonymous visitors have no session nonce. Protected by the signed form token,
+		// honeypot and rate limit in BorsFlow_Spam; every value is sanitized per field type in process().
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 		$params  = wp_unslash( $_POST );
 		$form_id = absint( $params['form_id'] ?? 0 );
 		$result  = self::process( $form_id, $params, $_FILES, self::request_meta() );
+		// phpcs:enable
 
 		if ( $result['success'] && '' !== $result['redirect'] ) {
 			wp_redirect( $result['redirect'] ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- admin-configured destination.

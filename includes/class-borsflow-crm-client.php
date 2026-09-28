@@ -116,8 +116,8 @@ class BorsFlow_Crm_Client {
 		 */
 		$args = apply_filters( 'borsflow_crm_request_args', $args, $method, $path );
 
-		$start    = microtime( true );
-		$response = wp_remote_request( $this->base . $path, $args );
+		$start              = microtime( true );
+		$response           = wp_remote_request( $this->base . $path, $args );
 		$out['duration_ms'] = (int) round( ( microtime( true ) - $start ) * 1000 );
 
 		if ( is_wp_error( $response ) ) {

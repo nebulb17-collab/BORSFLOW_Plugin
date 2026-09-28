@@ -18,13 +18,16 @@ class BorsFlow_Spam {
 	 * Public forms are often served from a full-page cache, so a WordPress nonce
 	 * (tied to a session and expiring after 24h) would break real visitors.
 	 * This token proves the submission came from a form we rendered and carries
-	 * the render time for the time trap, without expiring.
+	 * the render time for the time trap. It expires after the configured max
+	 * age; the front-end script swaps in a fresh one (see refresh_token()) when
+	 * the cached page is older than half that, so real visitors never hit it.
 	 *
-	 * @param int $form_id Form ID.
+	 * @param int      $form_id Form ID.
+	 * @param int|null $ts      Issue time (defaults to now).
 	 * @return string
 	 */
-	public static function issue_token( $form_id ) {
-		$ts = time();
+	public static function issue_token( $form_id, $ts = null ) {
+		$ts = null === $ts ? time() : (int) $ts;
 		return $ts . '.' . self::sign( $form_id, $ts );
 	}
 
@@ -54,7 +57,38 @@ class BorsFlow_Spam {
 		if ( $ts > time() + 60 || ! hash_equals( self::sign( $form_id, $ts ), $m[2] ) ) {
 			return null;
 		}
+		$max_age = self::token_max_age();
+		if ( $max_age > 0 && time() - $ts > $max_age ) {
+			return null;
+		}
 		return $ts;
+	}
+
+	/**
+	 * Token lifetime in seconds (0 = never expires).
+	 *
+	 * @return int
+	 */
+	public static function token_max_age() {
+		return (int) BorsFlow_Settings::get( 'token_max_age' ) * HOUR_IN_SECONDS;
+	}
+
+	/**
+	 * REST callback: GET /forms/{id}/token. Lets pages served from a long-lived
+	 * cache obtain a current token. Handing out tokens gives bots nothing they
+	 * could not scrape from the page; the time trap still measures from issue time.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function refresh_token( WP_REST_Request $request ) {
+		$form = BorsFlow_Form::get( (int) $request['id'], false );
+		if ( ! $form ) {
+			return new WP_Error( 'borsflow_not_found', __( 'This form is not available.', 'borsflow-forms' ), array( 'status' => 404 ) );
+		}
+		$response = rest_ensure_response( array( 'token' => self::issue_token( $form['id'] ) ) );
+		$response->header( 'Cache-Control', 'no-store, max-age=0' );
+		return $response;
 	}
 
 	/**
@@ -143,7 +177,10 @@ class BorsFlow_Spam {
 		$key    = self::rate_key( $form_id );
 		$hits   = get_transient( $key );
 		if ( ! is_array( $hits ) || (int) $hits['expires'] <= time() ) {
-			$hits = array( 'count' => 0, 'expires' => time() + $window );
+			$hits = array(
+				'count'   => 0,
+				'expires' => time() + $window,
+			);
 		}
 		++$hits['count'];
 		set_transient( $key, $hits, max( 1, $hits['expires'] - time() ) );
@@ -208,14 +245,46 @@ class BorsFlow_Spam {
 	}
 
 	/**
-	 * Client IP. Only REMOTE_ADDR is trusted; sites behind a proxy/CDN can use the
-	 * `borsflow_client_ip` filter to read a forwarded header they trust.
+	 * Client IP.
+	 *
+	 * REMOTE_ADDR by default. Behind a CDN or load balancer every visitor shares
+	 * the proxy's address, so an admin can trust one forwarded header in
+	 * Settings. Only do that when the proxy always sets it: otherwise visitors can
+	 * spoof it to dodge the rate limit. The `borsflow_client_ip` filter has the
+	 * final say.
 	 *
 	 * @return string
 	 */
 	public static function client_ip() {
-		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		$ip = (string) apply_filters( 'borsflow_client_ip', $ip );
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$ip     = self::ip_from_header( (string) BorsFlow_Settings::get( 'proxy_header' ) );
+		$ip     = (string) apply_filters( 'borsflow_client_ip', '' !== $ip ? $ip : $remote, $remote );
 		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '';
+	}
+
+	/**
+	 * Read a client IP from a trusted proxy header.
+	 *
+	 * For X-Forwarded-For ("client, proxy1, proxy2") the right-most address that is
+	 * not private/reserved is used: entries to its left were supplied by the
+	 * client and can be forged, entries to its right are our own infrastructure.
+	 *
+	 * @param string $header $_SERVER key, or '' for none.
+	 * @return string Valid IP or ''.
+	 */
+	public static function ip_from_header( $header ) {
+		if ( '' === $header || ! array_key_exists( $header, BorsFlow_Settings::proxy_headers() ) || empty( $_SERVER[ $header ] ) ) {
+			return '';
+		}
+		$parts = array_map( 'trim', explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) ) );
+		if ( 'HTTP_X_FORWARDED_FOR' === $header ) {
+			foreach ( array_reverse( $parts ) as $candidate ) {
+				if ( filter_var( $candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+					return $candidate;
+				}
+			}
+			return '';
+		}
+		return filter_var( $parts[0], FILTER_VALIDATE_IP ) ? $parts[0] : '';
 	}
 }

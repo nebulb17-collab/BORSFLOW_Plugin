@@ -38,6 +38,20 @@ class BorsFlow_Rest {
 
 		register_rest_route(
 			self::NS,
+			'/forms/(?P<id>\d+)/token',
+			array(
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => array( 'BorsFlow_Spam', 'refresh_token' ),
+				// Public by design; see the note on BorsFlow_Spam::refresh_token.
+				'permission_callback' => '__return_true',
+				'args'                => array(
+					'id' => array( 'sanitize_callback' => 'absint' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NS,
 			'/admin/forms/(?P<id>\d+)',
 			array(
 				'methods'             => WP_REST_Server::EDITABLE,

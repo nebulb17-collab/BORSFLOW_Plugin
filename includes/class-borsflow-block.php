@@ -69,7 +69,7 @@ class BorsFlow_Block {
 			'borsflow-block-editor',
 			'window.borsflowBlock = ' . wp_json_encode(
 				array(
-					'forms'     => $forms,
+					'forms'      => $forms,
 					'newFormUrl' => admin_url( 'admin.php?page=borsflow-builder' ),
 				)
 			) . ';',

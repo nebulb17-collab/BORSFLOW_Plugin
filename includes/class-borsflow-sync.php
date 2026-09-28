@@ -75,18 +75,37 @@ class BorsFlow_Sync {
 		$id  = (int) $id;
 		$row = BorsFlow_Submissions::get( $id );
 		if ( ! $row ) {
-			return array( 'ok' => false, 'message' => __( 'Submission not found.', 'borsflow-forms' ) );
+			return array(
+				'ok'      => false,
+				'message' => __( 'Submission not found.', 'borsflow-forms' ),
+			);
 		}
 		if ( 'synced' === $row['sync_status'] ) {
-			return array( 'ok' => true, 'message' => __( 'Already synced.', 'borsflow-forms' ) );
+			return array(
+				'ok'      => true,
+				'message' => __( 'Already synced.', 'borsflow-forms' ),
+			);
 		}
 		if ( ! BorsFlow_Crm_Client::is_configured() ) {
 			$message = __( 'CRM is not configured; sync skipped.', 'borsflow-forms' );
-			BorsFlow_Submissions::update( $id, array( 'sync_status' => 'skipped', 'last_error' => $message, 'next_retry_at' => null ) );
-			return array( 'ok' => false, 'message' => $message );
+			BorsFlow_Submissions::update(
+				$id,
+				array(
+					'sync_status'   => 'skipped',
+					'last_error'    => $message,
+					'next_retry_at' => null,
+				)
+			);
+			return array(
+				'ok'      => false,
+				'message' => $message,
+			);
 		}
 		if ( ! BorsFlow_Submissions::claim( $id ) ) {
-			return array( 'ok' => false, 'message' => __( 'A sync for this submission is already in progress.', 'borsflow-forms' ) );
+			return array(
+				'ok'      => false,
+				'message' => __( 'A sync for this submission is already in progress.', 'borsflow-forms' ),
+			);
 		}
 		// This run supersedes any queued attempt (e.g. a manual retry before cron fired).
 		wp_clear_scheduled_hook( self::HOOK, array( $id ) );
@@ -127,8 +146,11 @@ class BorsFlow_Sync {
 				)
 			);
 			do_action( 'borsflow_submission_synced', $id, $lead_id, $res );
-			/* translators: %s: CRM lead ID. */
-			return array( 'ok' => true, 'message' => '' !== $lead_id ? sprintf( __( 'Synced as lead %s.', 'borsflow-forms' ), $lead_id ) : __( 'Synced.', 'borsflow-forms' ) );
+			return array(
+				'ok'      => true,
+				/* translators: %s: CRM lead ID. */
+				'message' => '' !== $lead_id ? sprintf( __( 'Synced as lead %s.', 'borsflow-forms' ), $lead_id ) : __( 'Synced.', 'borsflow-forms' ),
+			);
 		}
 
 		$max        = (int) BorsFlow_Settings::get( 'crm_max_attempts' );
@@ -153,7 +175,10 @@ class BorsFlow_Sync {
 		);
 		do_action( 'borsflow_submission_sync_failed', $id, $res, $will_retry );
 
-		return array( 'ok' => false, 'message' => $res['error'] );
+		return array(
+			'ok'      => false,
+			'message' => $res['error'],
+		);
 	}
 
 	/**
@@ -164,7 +189,12 @@ class BorsFlow_Sync {
 	 * @return array
 	 */
 	public static function build_lead( $row, $form ) {
-		$crm     = $form ? $form['settings']['crm'] : array( 'mapping' => array(), 'pipeline' => '', 'stage' => '', 'source' => '' );
+		$crm     = $form ? $form['settings']['crm'] : array(
+			'mapping'  => array(),
+			'pipeline' => '',
+			'stage'    => '',
+			'source'   => '',
+		);
 		$mapping = (array) $crm['mapping'];
 		if ( ! $form ) {
 			// Form deleted before sync: infer the obvious mappings from the stored field types.
@@ -177,9 +207,9 @@ class BorsFlow_Sync {
 				}
 			}
 		}
-		$lead    = array();
-		$notes   = array();
-		$extra   = array();
+		$lead  = array();
+		$notes = array();
+		$extra = array();
 
 		foreach ( $row['payload'] as $key => $entry ) {
 			$value = BorsFlow_Mailer::value_to_string( $entry );

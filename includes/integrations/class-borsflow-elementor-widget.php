@@ -106,8 +106,8 @@ class BorsFlow_Elementor_Widget extends \Elementor\Widget_Base {
 		$this->add_control(
 			'builder_link',
 			array(
-				'type' => \Elementor\Controls_Manager::RAW_HTML,
-				'raw'  => sprintf(
+				'type'            => \Elementor\Controls_Manager::RAW_HTML,
+				'raw'             => sprintf(
 					'<a href="%s" target="_blank" rel="noopener">%s</a>',
 					esc_url( admin_url( 'admin.php?page=borsflow-forms' ) ),
 					esc_html__( 'Manage forms in BorsFlow Forms →', 'borsflow-forms' )

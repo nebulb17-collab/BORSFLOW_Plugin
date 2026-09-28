@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<ruleset name="BorsFlow Forms">
+	<description>WordPress Coding Standards for BorsFlow Forms.</description>
+
+	<file>.</file>
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/tests/*</exclude-pattern>
+	<exclude-pattern>/tools/*</exclude-pattern>
+	<exclude-pattern>/assets/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<config name="minimum_wp_version" value="6.0"/>
+	<config name="testVersion" value="8.0-"/>
+
+	<rule ref="PHPCompatibilityWP"/>
+
+	<rule ref="WordPress">
+		<!-- Class files are named class-borsflow-*.php, which WPCS accepts; the main file is not a class. -->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<!-- Our own tables: direct queries are the point, and they are not cacheable listings. -->
+		<exclude name="WordPress.DB.DirectDatabaseQuery.DirectQuery"/>
+		<exclude name="WordPress.DB.DirectDatabaseQuery.NoCaching"/>
+		<!-- Short array syntax is not used; long form is the WP convention. -->
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax.Found"/>
+		<!-- PHP 8 codebase: `?:` is idiomatic and clearer than repeating the operand. -->
+		<exclude name="Universal.Operators.DisallowShortTernary"/>
+		<!-- Doc summaries often start with a code identifier such as "admin-post: ...". -->
+		<exclude name="Generic.Commenting.DocComment.ShortNotCapital"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="borsflow-forms"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="borsflow"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

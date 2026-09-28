@@ -18,6 +18,7 @@ class BorsFlow_Maintenance {
 	public static function run() {
 		self::apply_retention();
 		self::reschedule_overdue();
+		self::send_overdue_emails();
 	}
 
 	/**
@@ -34,6 +35,17 @@ class BorsFlow_Maintenance {
 				break;
 			}
 			BorsFlow_Submissions::delete( $ids );
+		}
+	}
+
+	/**
+	 * Send emails whose cron event was lost (e.g. the plugin was deactivated in between).
+	 */
+	public static function send_overdue_emails() {
+		foreach ( BorsFlow_Submissions::unsent_email_ids() as $id ) {
+			if ( ! wp_next_scheduled( BorsFlow_Mailer::HOOK, array( $id ) ) ) {
+				BorsFlow_Mailer::send_queued( $id );
+			}
 		}
 	}
 

@@ -86,8 +86,8 @@ class BorsFlow_Forms_List_Table extends WP_List_Table {
 			)
 		);
 
-		$this->items  = $query->posts;
-		$this->counts = BorsFlow_Submissions::counts_by_form();
+		$this->items           = $query->posts;
+		$this->counts          = BorsFlow_Submissions::counts_by_form();
 		$this->_column_headers = array( $this->get_columns(), array(), $this->get_sortable_columns() );
 		$this->set_pagination_args(
 			array(

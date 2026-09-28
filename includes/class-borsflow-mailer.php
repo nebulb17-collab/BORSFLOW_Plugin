@@ -12,6 +12,35 @@ defined( 'ABSPATH' ) || exit;
  */
 class BorsFlow_Mailer {
 
+	const HOOK = 'borsflow_send_notifications';
+
+	/**
+	 * Queue notification emails for a stored submission.
+	 *
+	 * @param int $id Submission ID.
+	 */
+	public static function queue( $id ) {
+		if ( ! wp_next_scheduled( self::HOOK, array( (int) $id ) ) ) {
+			wp_schedule_single_event( time(), self::HOOK, array( (int) $id ) );
+		}
+	}
+
+	/**
+	 * Cron callback: send the emails for a submission, at most once.
+	 *
+	 * @param int $id Submission ID.
+	 */
+	public static function send_queued( $id ) {
+		$row = BorsFlow_Submissions::get( (int) $id );
+		if ( ! $row || ! BorsFlow_Submissions::claim_emails( (int) $id ) ) {
+			return;
+		}
+		$form = BorsFlow_Form::get( (int) $row['form_id'] );
+		if ( $form ) {
+			self::send_notifications( $form, $row['payload'], (int) $id, (string) $row['page_url'] );
+		}
+	}
+
 	/**
 	 * Send the admin notification and autoresponder for a new submission.
 	 *
@@ -135,9 +164,10 @@ class BorsFlow_Mailer {
 	 * @return string
 	 */
 	private static function body( $template, $vars, $payload ) {
-		$vars['all_fields'] = '';
-		$html               = self::merge( $template, $vars, static fn( $v ) => nl2br( esc_html( $v ) ) );
-		$html               = str_replace( '{all_fields}', self::all_fields_html( $payload ), $html );
+		// {all_fields} is left alone by merge() (not in $vars) and swapped for pre-escaped HTML afterwards.
+		unset( $vars['all_fields'] );
+		$html = self::merge( $template, $vars, static fn( $v ) => nl2br( esc_html( $v ) ) );
+		$html = str_replace( '{all_fields}', self::all_fields_html( $payload ), $html );
 		return wpautop( $html );
 	}
 
@@ -158,13 +188,13 @@ class BorsFlow_Mailer {
 	/**
 	 * Parse a comma separated recipient list that may contain {tags}.
 	 *
-	 * @param string $list List.
-	 * @param array  $vars Variables.
+	 * @param string $recipients List.
+	 * @param array  $vars       Variables.
 	 * @return string[]
 	 */
-	private static function recipients( $list, $vars ) {
+	private static function recipients( $recipients, $vars ) {
 		$out = array();
-		foreach ( explode( ',', self::merge( $list, $vars, 'strval' ) ) as $email ) {
+		foreach ( explode( ',', self::merge( $recipients, $vars, 'strval' ) ) as $email ) {
 			$email = sanitize_email( trim( $email ) );
 			if ( is_email( $email ) ) {
 				$out[] = $email;

@@ -4,7 +4,7 @@ Tags: contact form, form builder, crm, leads, elementor
 Requires at least: 6.0
 Tested up to: 6.6
 Requires PHP: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -78,6 +78,18 @@ Yes. Forms use a signed, non-expiring render token instead of a session nonce, s
 
 nginx ignores `.htaccess`. Files are stored with random, non-executable names, but you should either deny `/wp-content/uploads/borsflow-private/` in your nginx config or move storage outside the web root with the `borsflow_upload_dir` filter.
 
+= My site is behind Cloudflare / a load balancer. =
+
+Set Settings → Spam protection → Visitor IP source to the header your proxy sets. Otherwise the rate limit sees every visitor as the same IP.
+
+= Can I keep the API key out of the database? =
+
+Yes. Define `BORSFLOW_API_KEY` (and optionally `BORSFLOW_CRM_BASE_URL`, `BORSFLOW_RECAPTCHA_SECRET`, `BORSFLOW_TURNSTILE_SECRET`) in wp-config.php.
+
+= Is it GDPR friendly? =
+
+Submissions are included in WordPress's personal data export and erasure tools. Storing IP addresses can be turned off, and suggested privacy policy text is provided.
+
 = Are there developer hooks? =
 
 Filters: `borsflow_field_types`, `borsflow_form_html`, `borsflow_validation_errors`, `borsflow_crm_lead_payload`, `borsflow_crm_request_args`, `borsflow_sync_backoff`, `borsflow_upload_dir`, `borsflow_client_ip`, `borsflow_notification_headers`, `borsflow_autoresponder_headers`.
@@ -85,10 +97,25 @@ Actions: `borsflow_submission_created`, `borsflow_submission_synced`, `borsflow_
 
 == Changelog ==
 
+= 1.1.0 =
+* Renaming a field key in the builder now updates conditional rules, CRM mapping, Reply-To/autoresponder bindings and email merge tags. Deleting a referenced field warns first and cleans up.
+* Notification emails are sent in the background via WP-Cron, at most once per submission.
+* New "Visitor IP source" setting for sites behind Cloudflare or a proxy.
+* Form tokens expire (default 48 h) to block replay; cached pages fetch a fresh token automatically.
+* Personal data exporter and eraser, an option to not store IP/user agent, and privacy policy text.
+* Secrets can be defined as wp-config.php constants.
+* Fix: regex patterns lost their backslashes on save (e.g. `\d` became `d`).
+* Fix: the `{all_fields}` merge tag rendered empty in emails.
+* Fix: the "references updated" notice in the builder was immediately overwritten.
+* Added PHPUnit, Playwright and PHPCS tooling plus GitHub Actions CI.
+
 = 1.0.0 =
 * Initial release. See CHANGELOG.md.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Fixes regex patterns losing backslashes and an empty {all_fields} in emails. Emails are now sent in the background. Sites behind Cloudflare or a proxy should set the new Visitor IP source setting.
 
 = 1.0.0 =
 Initial release.

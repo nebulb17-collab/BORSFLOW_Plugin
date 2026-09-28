@@ -105,6 +105,7 @@
 			}
 		} );
 
+		this.refreshStaleToken();
 		this.applyConditions();
 		this.form.addEventListener( 'input', function ( e ) {
 			self.applyConditions();
@@ -131,6 +132,32 @@
 		this.form.addEventListener( 'submit', function ( e ) {
 			self.onSubmit( e );
 		} );
+	};
+
+	/**
+	 * Pages can sit in a full-page cache for days. When the render token is older
+	 * than half its lifetime, fetch a fresh one so the server never sees it expire.
+	 */
+	Form.prototype.refreshStaleToken = function () {
+		var input = this.form.querySelector( 'input[name="bf_token"]' );
+		var maxAge = Number( this.config.tokenMaxAge || 0 );
+		if ( ! input || ! maxAge || ! this.config.tokenUrl || this.config.preview || ! window.fetch ) {
+			return;
+		}
+		var issued = parseInt( input.value.split( '.' )[ 0 ], 10 ) || 0;
+		if ( Date.now() / 1000 - issued < maxAge / 2 ) {
+			return;
+		}
+		this.tokenPromise = fetch( this.config.tokenUrl, { credentials: 'same-origin', cache: 'no-store' } )
+			.then( function ( res ) {
+				return res.ok ? res.json() : null;
+			} )
+			.then( function ( json ) {
+				if ( json && json.token ) {
+					input.value = json.token;
+				}
+			} )
+			.catch( function () {} );
 	};
 
 	Form.prototype.fieldByKey = function ( key ) {
@@ -415,7 +442,9 @@
 		}
 
 		this.setBusy( true );
-		this.captchaToken().then( function () {
+		Promise.resolve( this.tokenPromise ).then( function () {
+			return self.captchaToken();
+		} ).then( function () {
 			var data = new FormData( self.form );
 			data.set( 'bf_page_url', window.location.href.split( '#' )[ 0 ] );
 			data.set( 'bf_referrer', document.referrer || '' );

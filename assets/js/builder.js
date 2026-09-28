@@ -109,6 +109,111 @@
 		target[ last ] = value;
 	}
 
+	/* ---------------------------------------------------------------------
+	 * Key references: conditions, CRM mapping, email bindings, merge tags
+	 * ------------------------------------------------------------------- */
+
+	var MERGE_PATHS = [ 'notify.recipients', 'notify.subject', 'notify.body', 'autoresponder.subject', 'autoresponder.body' ];
+	var BINDING_PATHS = [ 'notify.reply_to_field', 'autoresponder.to_field' ];
+
+	function escapeRegExp( s ) {
+		return s.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+	}
+
+	/** Human-readable list of places that use a key. */
+	function findReferences( key ) {
+		var refs = [];
+		state.fields.forEach( function ( f ) {
+			if ( f.key !== key && f.conditions && f.conditions.rules.some( function ( r ) {
+				return r.field === key;
+			} ) ) {
+				refs.push( sprintf( __( 'conditional logic of “%s”', 'borsflow-forms' ), f.label || f.key ) );
+			}
+		} );
+		if ( state.settings.crm.mapping && state.settings.crm.mapping[ key ] ) {
+			refs.push( __( 'CRM mapping', 'borsflow-forms' ) );
+		}
+		if ( getPath( state.settings, 'notify.reply_to_field' ) === key ) {
+			refs.push( __( 'notification Reply-To', 'borsflow-forms' ) );
+		}
+		if ( getPath( state.settings, 'autoresponder.to_field' ) === key ) {
+			refs.push( __( 'autoresponder recipient', 'borsflow-forms' ) );
+		}
+		var tag = new RegExp( '\\{' + escapeRegExp( key ) + '\\}' );
+		if ( MERGE_PATHS.some( function ( p ) {
+			return tag.test( String( getPath( state.settings, p ) || '' ) );
+		} ) ) {
+			refs.push( sprintf( __( 'email merge tag {%s}', 'borsflow-forms' ), key ) );
+		}
+		return refs;
+	}
+
+	/**
+	 * Point every reference at a renamed key. Returns how many were updated.
+	 */
+	function renameKey( oldKey, newKey ) {
+		var n = 0;
+		state.fields.forEach( function ( f ) {
+			( f.conditions ? f.conditions.rules : [] ).forEach( function ( r ) {
+				if ( r.field === oldKey ) {
+					r.field = newKey;
+					n++;
+				}
+			} );
+		} );
+		var map = state.settings.crm.mapping;
+		if ( map && ! Array.isArray( map ) && map[ oldKey ] ) {
+			map[ newKey ] = map[ oldKey ];
+			delete map[ oldKey ];
+			n++;
+		}
+		BINDING_PATHS.forEach( function ( p ) {
+			if ( getPath( state.settings, p ) === oldKey ) {
+				setPath( state.settings, p, newKey );
+				n++;
+			}
+		} );
+		var tag = new RegExp( '\\{' + escapeRegExp( oldKey ) + '\\}', 'g' );
+		MERGE_PATHS.forEach( function ( p ) {
+			var text = String( getPath( state.settings, p ) || '' );
+			var replaced = text.replace( tag, function () {
+				n++;
+				return '{' + newKey + '}';
+			} );
+			if ( replaced !== text ) {
+				setPath( state.settings, p, replaced );
+			}
+		} );
+		return n;
+	}
+
+	/** Drop rules, mappings and bindings that point at a deleted key. */
+	function removeReferences( key ) {
+		state.fields.forEach( function ( f ) {
+			if ( ! f.conditions ) {
+				return;
+			}
+			var before = f.conditions.rules.length;
+			f.conditions.rules = f.conditions.rules.filter( function ( r ) {
+				return r.field !== key;
+			} );
+			if ( before && ! f.conditions.rules.length ) {
+				f.conditions.enabled = false; // No rules left: behave as an always-visible field.
+			}
+			if ( before !== f.conditions.rules.length ) {
+				updateCard( f );
+			}
+		} );
+		if ( state.settings.crm.mapping && ! Array.isArray( state.settings.crm.mapping ) ) {
+			delete state.settings.crm.mapping[ key ];
+		}
+		BINDING_PATHS.forEach( function ( p ) {
+			if ( getPath( state.settings, p ) === key ) {
+				setPath( state.settings, p, '' );
+			}
+		} );
+	}
+
 	function newField( type ) {
 		var f = clone( data.blanks[ type ] );
 		var label = data.types[ type ].label;
@@ -584,6 +689,7 @@
 			var prop = $( this ).data( 'prop' );
 			var val = this.type === 'checkbox' ? this.checked : $( this ).val();
 
+			var oldKey = f.key;
 			if ( prop === 'key' ) {
 				if ( e.type !== 'change' ) {
 					return;
@@ -598,8 +704,13 @@
 				f.key = uniqueKey( val, f.id );
 				$panel.find( '[data-prop="key"]' ).val( f.key );
 			}
+			var moved = oldKey && f.key !== oldKey ? renameKey( oldKey, f.key ) : 0;
 			updateCard( f );
 			changed();
+			if ( moved ) {
+				// After changed(), which would otherwise overwrite this notice.
+				setStatus( sprintf( __( 'Unsaved changes · updated %d reference(s) to the renamed key', 'borsflow-forms' ), moved ), 'dirty' );
+			}
 		} );
 
 		// Options editor.
@@ -963,8 +1074,18 @@
 		$canvas.on( 'click', '.bf-b-del', function () {
 			var id = $( this ).closest( '.bf-b-card' ).data( 'id' );
 			var f = findField( id );
-			if ( ! window.confirm( sprintf( __( 'Delete the field “%s”?', 'borsflow-forms' ), f.label || f.key || data.types[ f.type ].label ) ) ) {
+			var name = f.label || f.key || data.types[ f.type ].label;
+			var refs = f.key ? findReferences( f.key ) : [];
+			var question = sprintf( __( 'Delete the field “%s”?', 'borsflow-forms' ), name );
+			if ( refs.length ) {
+				question += '\n\n' + __( 'It is used by:', 'borsflow-forms' ) + '\n• ' + refs.join( '\n• ' ) +
+					'\n\n' + __( 'Conditional rules, CRM mapping and email settings that use it will be removed. Merge tags in email text will print literally.', 'borsflow-forms' );
+			}
+			if ( ! window.confirm( question ) ) {
 				return;
+			}
+			if ( f.key ) {
+				removeReferences( f.key );
 			}
 			state.fields = state.fields.filter( function ( x ) {
 				return x.id !== id;

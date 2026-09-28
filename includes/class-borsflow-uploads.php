@@ -142,9 +142,9 @@ class BorsFlow_Uploads {
 		if ( ! BorsFlow_Plugin::can_manage() || ! check_admin_referer( 'borsflow_download_' . $id ) ) {
 			wp_die( esc_html__( 'You are not allowed to download this file.', 'borsflow-forms' ), 403 );
 		}
-		$key = isset( $_GET['field'] ) ? BorsFlow_Fields::sanitize_field_key( wp_unslash( $_GET['field'] ) ) : '';
-		$row = BorsFlow_Submissions::get( $id );
-		$val = $row['payload'][ $key ]['value'] ?? null;
+		$key  = isset( $_GET['field'] ) ? BorsFlow_Fields::sanitize_field_key( sanitize_text_field( wp_unslash( $_GET['field'] ) ) ) : '';
+		$row  = BorsFlow_Submissions::get( $id );
+		$val  = $row['payload'][ $key ]['value'] ?? null;
 		$path = is_array( $val ) ? self::path( $val['stored'] ?? '' ) : null;
 		if ( ! $path ) {
 			wp_die( esc_html__( 'File not found.', 'borsflow-forms' ), 404 );

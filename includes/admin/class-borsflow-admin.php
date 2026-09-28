@@ -55,10 +55,10 @@ class BorsFlow_Admin {
 			26
 		);
 		add_submenu_page( 'borsflow-forms', __( 'Forms', 'borsflow-forms' ), __( 'Forms', 'borsflow-forms' ), $cap, 'borsflow-forms', array( 'BorsFlow_Admin_Forms', 'render' ) );
-		self::$hooks['builder'] = add_submenu_page( 'borsflow-forms', __( 'Form Builder', 'borsflow-forms' ), __( 'Add New', 'borsflow-forms' ), $cap, 'borsflow-builder', array( 'BorsFlow_Admin_Builder', 'render' ) );
+		self::$hooks['builder']     = add_submenu_page( 'borsflow-forms', __( 'Form Builder', 'borsflow-forms' ), __( 'Add New', 'borsflow-forms' ), $cap, 'borsflow-builder', array( 'BorsFlow_Admin_Builder', 'render' ) );
 		self::$hooks['submissions'] = add_submenu_page( 'borsflow-forms', __( 'Submissions', 'borsflow-forms' ), __( 'Submissions', 'borsflow-forms' ) . $badge, $cap, 'borsflow-submissions', array( 'BorsFlow_Admin_Submissions', 'render' ) );
-		self::$hooks['log']     = add_submenu_page( 'borsflow-forms', __( 'Sync Log', 'borsflow-forms' ), __( 'Sync Log', 'borsflow-forms' ), $cap, 'borsflow-sync-log', array( 'BorsFlow_Admin_Sync_Log', 'render' ) );
-		self::$hooks['settings'] = add_submenu_page( 'borsflow-forms', __( 'BorsFlow Settings', 'borsflow-forms' ), __( 'Settings', 'borsflow-forms' ), 'manage_options', 'borsflow-settings', array( 'BorsFlow_Admin_Settings', 'render' ) );
+		self::$hooks['log']         = add_submenu_page( 'borsflow-forms', __( 'Sync Log', 'borsflow-forms' ), __( 'Sync Log', 'borsflow-forms' ), $cap, 'borsflow-sync-log', array( 'BorsFlow_Admin_Sync_Log', 'render' ) );
+		self::$hooks['settings']    = add_submenu_page( 'borsflow-forms', __( 'BorsFlow Settings', 'borsflow-forms' ), __( 'Settings', 'borsflow-forms' ), 'manage_options', 'borsflow-settings', array( 'BorsFlow_Admin_Settings', 'render' ) );
 
 		add_action( 'load-' . self::$hooks['submissions'], array( 'BorsFlow_Admin_Submissions', 'load' ) );
 		add_action( 'load-' . self::$hooks['log'], array( 'BorsFlow_Admin_Sync_Log', 'load' ) );
@@ -127,6 +127,7 @@ class BorsFlow_Admin {
 	 */
 	public static function create_form() {
 		self::guard( 'borsflow_create_form' );
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified in guard() above.
 		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
 		$id    = BorsFlow_Form::create( $title );
 		if ( is_wp_error( $id ) ) {
@@ -140,16 +141,19 @@ class BorsFlow_Admin {
 	 * admin-post: duplicate / enable / disable / delete a form.
 	 */
 	public static function form_action() {
-		$id = isset( $_REQUEST['form_id'] ) ? absint( $_REQUEST['form_id'] ) : 0;
-		$do = isset( $_REQUEST['do'] ) ? sanitize_key( wp_unslash( $_REQUEST['do'] ) ) : '';
-		self::guard( 'borsflow_form_' . $do . '_' . $id );
+		// The nonce action embeds the form ID and operation, so they are read first and verified by guard().
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$id        = isset( $_REQUEST['form_id'] ) ? absint( $_REQUEST['form_id'] ) : 0;
+		$operation = isset( $_REQUEST['do'] ) ? sanitize_key( wp_unslash( $_REQUEST['do'] ) ) : '';
+		// phpcs:enable
+		self::guard( 'borsflow_form_' . $operation . '_' . $id );
 
 		if ( ! BorsFlow_Form::get( $id ) ) {
 			wp_die( esc_html__( 'Form not found.', 'borsflow-forms' ), 404 );
 		}
 
 		$notice = '';
-		switch ( $do ) {
+		switch ( $operation ) {
 			case 'duplicate':
 				$new = BorsFlow_Form::duplicate( $id );
 				if ( ! is_wp_error( $new ) ) {
@@ -159,8 +163,8 @@ class BorsFlow_Admin {
 				break;
 			case 'enable':
 			case 'disable':
-				BorsFlow_Form::set_enabled( $id, 'enable' === $do );
-				$notice = $do . 'd';
+				BorsFlow_Form::set_enabled( $id, 'enable' === $operation );
+				$notice = $operation . 'd';
 				break;
 			case 'delete':
 				BorsFlow_Form::delete( $id );
@@ -175,13 +179,13 @@ class BorsFlow_Admin {
 	 * Nonce'd admin-post URL for a form action.
 	 *
 	 * @param int    $id Form ID.
-	 * @param string $do Action.
+	 * @param string $operation duplicate|enable|disable|delete.
 	 * @return string
 	 */
-	public static function form_action_url( $id, $do ) {
+	public static function form_action_url( $id, $operation ) {
 		return wp_nonce_url(
-			admin_url( 'admin-post.php?action=borsflow_form_action&do=' . $do . '&form_id=' . (int) $id ),
-			'borsflow_form_' . $do . '_' . (int) $id
+			admin_url( 'admin-post.php?action=borsflow_form_action&do=' . $operation . '&form_id=' . (int) $id ),
+			'borsflow_form_' . $operation . '_' . (int) $id
 		);
 	}
 

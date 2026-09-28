@@ -164,13 +164,29 @@ class BorsFlow_Admin_Submissions {
 				exit;
 			case 'delete':
 				BorsFlow_Submissions::delete( array( $id ) );
-				wp_safe_redirect( add_query_arg( array( 'notice' => 'deleted', 'count' => 1 ), self::base_url() ) );
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'notice' => 'deleted',
+							'count'  => 1,
+						),
+						self::base_url()
+					)
+				);
 				exit;
 			case 'mark_read':
 			case 'mark_unread':
 				BorsFlow_Submissions::mark_read( array( $id ), 'mark_read' === $action );
 				// Returning to the detail view would mark it read again.
-				wp_safe_redirect( add_query_arg( array( 'notice' => $action, 'count' => 1 ), remove_query_arg( 'view', $back ) ) );
+				wp_safe_redirect(
+					add_query_arg(
+						array(
+							'notice' => $action,
+							'count'  => 1,
+						),
+						remove_query_arg( 'view', $back )
+					)
+				);
 				exit;
 		}
 	}
@@ -208,7 +224,15 @@ class BorsFlow_Admin_Submissions {
 				return;
 		}
 		$back = remove_query_arg( array( 'action', 'action2', 'ids', '_wpnonce', '_wp_http_referer', 'notice', 'count', 'bfmsg' ), wp_get_referer() ?: self::base_url() );
-		wp_safe_redirect( add_query_arg( array( 'notice' => $action, 'count' => $count ), $back ) );
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'notice' => $action,
+					'count'  => $count,
+				),
+				$back
+			)
+		);
 		exit;
 	}
 
@@ -240,7 +264,15 @@ class BorsFlow_Admin_Submissions {
 		}
 		$page = 1;
 		do {
-			$batch = BorsFlow_Submissions::query( array_merge( $filters, array( 'per_page' => 500, 'page' => $page++ ) ) );
+			$batch = BorsFlow_Submissions::query(
+				array_merge(
+					$filters,
+					array(
+						'per_page' => 500,
+						'page'     => $page++,
+					)
+				)
+			);
 			foreach ( $batch['items'] as $row ) {
 				foreach ( $row['payload'] as $key => $entry ) {
 					if ( ! isset( $columns[ $key ] ) ) {
@@ -248,7 +280,8 @@ class BorsFlow_Admin_Submissions {
 					}
 				}
 			}
-		} while ( count( $batch['items'] ) === 500 );
+			$more = count( $batch['items'] ) === 500;
+		} while ( $more );
 
 		$forms    = BorsFlow_Form::options();
 		$filename = 'borsflow-submissions-' . gmdate( 'Y-m-d-His' ) . '.csv';
@@ -258,6 +291,7 @@ class BorsFlow_Admin_Submissions {
 		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
 		header( 'X-Content-Type-Options: nosniff' );
 
+		// phpcs:disable WordPress.WP.AlternativeFunctions -- streaming to php://output, not the filesystem.
 		$out = fopen( 'php://output', 'w' );
 		fwrite( $out, "\xEF\xBB\xBF" ); // UTF-8 BOM so Excel detects the encoding.
 		fputcsv(
@@ -275,7 +309,15 @@ class BorsFlow_Admin_Submissions {
 		// Pass 2: rows.
 		$page = 1;
 		do {
-			$batch = BorsFlow_Submissions::query( array_merge( $filters, array( 'per_page' => 500, 'page' => $page++ ) ) );
+			$batch = BorsFlow_Submissions::query(
+				array_merge(
+					$filters,
+					array(
+						'per_page' => 500,
+						'page'     => $page++,
+					)
+				)
+			);
 			foreach ( $batch['items'] as $row ) {
 				$line = array(
 					$row['id'],
@@ -288,9 +330,11 @@ class BorsFlow_Admin_Submissions {
 				array_push( $line, $row['sync_status'], $row['crm_lead_id'], (string) $row['last_error'], $row['ip'], (string) $row['page_url'], (string) $row['referrer'] );
 				fputcsv( $out, array_map( array( __CLASS__, 'csv_cell' ), $line ) );
 			}
-		} while ( count( $batch['items'] ) === 500 );
+			$more = count( $batch['items'] ) === 500;
+		} while ( $more );
 
-		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		fclose( $out );
+		// phpcs:enable
 	}
 
 	/**
@@ -338,11 +382,12 @@ class BorsFlow_Admin_Submissions {
 	 * Page callback.
 	 */
 	public static function render() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- display only.
 		if ( isset( $_GET['view'] ) ) {
 			self::render_detail( absint( $_GET['view'] ) );
 			return;
 		}
+		// phpcs:enable
 		if ( ! self::$table ) {
 			self::load();
 		}
@@ -406,8 +451,8 @@ class BorsFlow_Admin_Submissions {
 			echo '<p><a href="' . esc_url( self::base_url() ) . '">' . esc_html__( '← Back to submissions', 'borsflow-forms' ) . '</a></p></div>';
 			return;
 		}
-		$form   = BorsFlow_Form::get( (int) $row['form_id'] );
-		$logs   = BorsFlow_Submissions::logs( $id );
+		$form = BorsFlow_Form::get( (int) $row['form_id'] );
+		$logs = BorsFlow_Submissions::logs( $id );
 		?>
 		<h1 class="wp-heading-inline">
 			<?php
@@ -488,7 +533,7 @@ class BorsFlow_Admin_Submissions {
 					<div class="postbox">
 						<h2 class="hndle"><?php esc_html_e( 'CRM sync', 'borsflow-forms' ); ?></h2>
 						<div class="inside">
-							<p><?php echo BorsFlow_Admin_Submissions::status_html( $row ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in status_html(). ?></p>
+							<p><?php echo self::status_html( $row ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in status_html(). ?></p>
 							<ul class="borsflow-meta-list">
 								<li><strong><?php esc_html_e( 'Attempts:', 'borsflow-forms' ); ?></strong> <?php echo esc_html( $row['sync_attempts'] ); ?></li>
 								<?php if ( $row['synced_at'] ) : ?>

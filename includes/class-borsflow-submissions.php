@@ -67,7 +67,7 @@ class BorsFlow_Submissions {
 			'is_read'     => 0,
 			'sync_status' => in_array( $data['sync_status'] ?? '', self::STATUSES, true ) ? $data['sync_status'] : 'pending',
 		);
-		$ok = $wpdb->insert( self::table(), $row, array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ) );
+		$ok  = $wpdb->insert( self::table(), $row, array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s' ) );
 		self::flush_unread_count();
 		return $ok ? (int) $wpdb->insert_id : false;
 	}
@@ -140,7 +140,7 @@ class BorsFlow_Submissions {
 		if ( ! empty( $args['ids'] ) ) {
 			$ids          = array_map( 'absint', (array) $args['ids'] );
 			$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-			$sql[]        = $wpdb->prepare( "id IN ({$placeholders})", $ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- placeholders built above.
+			$sql[]        = $wpdb->prepare( "id IN ({$placeholders})", $ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- placeholders built above.
 		}
 		return implode( ' AND ', $sql );
 	}
@@ -204,7 +204,7 @@ class BorsFlow_Submissions {
 			wp_clear_scheduled_hook( BorsFlow_Sync::HOOK, array( (int) $row['id'] ) );
 		}
 		$in = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- placeholders built above.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders -- placeholders built above.
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::log_table() . " WHERE submission_id IN ({$in})", $ids ) );
 		$count = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::table() . " WHERE id IN ({$in})", $ids ) );
 		// phpcs:enable
@@ -288,6 +288,29 @@ class BorsFlow_Submissions {
 			)
 		);
 		return 1 === (int) $rows;
+	}
+
+	/**
+	 * Atomically mark a submission's emails as sent. Returns true only for the
+	 * one caller that flipped the flag, so notifications go out at most once.
+	 *
+	 * @param int $id ID.
+	 * @return bool
+	 */
+	public static function claim_emails( $id ) {
+		global $wpdb;
+		return 1 === (int) $wpdb->query( $wpdb->prepare( 'UPDATE ' . self::table() . ' SET emails_sent = 1 WHERE id = %d AND emails_sent = 0', $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name is internal.
+	}
+
+	/**
+	 * Submissions whose notification emails are still unsent well after creation (lost cron event).
+	 *
+	 * @return int[]
+	 */
+	public static function unsent_email_ids() {
+		global $wpdb;
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - 15 * MINUTE_IN_SECONDS );
+		return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM ' . self::table() . ' WHERE emails_sent = 0 AND created_at < %s ORDER BY id ASC LIMIT 200', $cutoff ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table name is internal.
 	}
 
 	/**

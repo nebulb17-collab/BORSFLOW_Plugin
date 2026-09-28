@@ -32,19 +32,19 @@ class BorsFlow_Post_Type {
 		register_post_type(
 			self::POST_TYPE,
 			array(
-				'labels'          => array(
+				'labels'       => array(
 					'name'          => __( 'Forms', 'borsflow-forms' ),
 					'singular_name' => __( 'Form', 'borsflow-forms' ),
 				),
-				'public'          => false,
-				'show_ui'         => false,
-				'show_in_rest'    => false,
-				'rewrite'         => false,
-				'query_var'       => false,
-				'supports'        => array( 'title' ),
-				'can_export'      => true,
-				'map_meta_cap'    => false,
-				'capabilities'    => array(
+				'public'       => false,
+				'show_ui'      => false,
+				'show_in_rest' => false,
+				'rewrite'      => false,
+				'query_var'    => false,
+				'supports'     => array( 'title' ),
+				'can_export'   => true,
+				'map_meta_cap' => false,
+				'capabilities' => array(
 					'edit_post'              => $cap,
 					'read_post'              => $cap,
 					'delete_post'            => $cap,

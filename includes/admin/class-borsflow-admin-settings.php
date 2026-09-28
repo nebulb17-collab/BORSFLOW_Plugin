@@ -50,7 +50,12 @@ class BorsFlow_Admin_Settings {
 					<tr>
 						<th scope="row"><label for="bf-crm-base"><?php esc_html_e( 'CRM base URL', 'borsflow-forms' ); ?></label></th>
 						<td>
+							<?php if ( BorsFlow_Settings::is_constant( 'crm_base_url' ) ) : ?>
+								<input type="url" class="regular-text code" id="bf-crm-base" value="<?php echo esc_attr( $s['crm_base_url'] ); ?>" disabled>
+								<p class="description"><?php self::constant_note( 'crm_base_url' ); ?></p>
+							<?php else : ?>
 							<input type="url" class="regular-text code" id="bf-crm-base" name="<?php echo esc_attr( $name ); ?>[crm_base_url]" value="<?php echo esc_attr( $s['crm_base_url'] ); ?>" placeholder="https://app.borsflow.com">
+							<?php endif; ?>
 							<p class="description"><?php esc_html_e( 'For local development use e.g. http://localhost:4000 (or http://host.docker.internal:4000 when WordPress runs in Docker).', 'borsflow-forms' ); ?></p>
 						</td>
 					</tr>
@@ -127,6 +132,30 @@ class BorsFlow_Admin_Settings {
 							<p class="description"><?php esc_html_e( '0 disables the limit.', 'borsflow-forms' ); ?></p>
 						</td>
 					</tr>
+					<tr>
+						<th scope="row"><label for="bf-proxy-header"><?php esc_html_e( 'Visitor IP source', 'borsflow-forms' ); ?></label></th>
+						<td>
+							<select id="bf-proxy-header" name="<?php echo esc_attr( $name ); ?>[proxy_header]">
+								<?php foreach ( BorsFlow_Settings::proxy_headers() as $header => $label ) : ?>
+									<option value="<?php echo esc_attr( $header ); ?>" <?php selected( $s['proxy_header'], $header ); ?>><?php echo esc_html( $label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<p class="description"><?php esc_html_e( 'Behind Cloudflare, a load balancer or a reverse proxy every visitor shares the proxy’s address, which makes the rate limit block everyone at once. Pick the header your proxy sets. Only do this if all traffic passes through that proxy, otherwise visitors can fake the header.', 'borsflow-forms' ); ?></p>
+							<p class="description">
+								<?php
+								/* translators: 1: detected IP, 2: REMOTE_ADDR. */
+								echo esc_html( sprintf( __( 'Your IP as detected with the saved setting: %1$s (connection address: %2$s).', 'borsflow-forms' ), BorsFlow_Spam::client_ip() ?: '—', isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '—' ) );
+								?>
+							</p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="bf-token-age"><?php esc_html_e( 'Form token lifetime', 'borsflow-forms' ); ?></label></th>
+						<td>
+							<input type="number" min="0" class="small-text" id="bf-token-age" name="<?php echo esc_attr( $name ); ?>[token_max_age]" value="<?php echo esc_attr( $s['token_max_age'] ); ?>"> <?php esc_html_e( 'hours', 'borsflow-forms' ); ?>
+							<p class="description"><?php esc_html_e( 'Rejects replayed submissions that use an old form token. Cached pages fetch a fresh token automatically, so visitors are not affected. 0 = never expire.', 'borsflow-forms' ); ?></p>
+						</td>
+					</tr>
 				</table>
 
 				<h2 class="title"><?php esc_html_e( 'File uploads', 'borsflow-forms' ); ?></h2>
@@ -173,6 +202,26 @@ class BorsFlow_Admin_Settings {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e( 'Privacy', 'borsflow-forms' ); ?></th>
+						<td>
+							<label for="bf-store-ip">
+								<input type="checkbox" id="bf-store-ip" name="<?php echo esc_attr( $name ); ?>[store_ip]" value="1" <?php checked( $s['store_ip'] ); ?>>
+								<?php esc_html_e( 'Store the visitor’s IP address and browser user agent with each submission', 'borsflow-forms' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Rate limiting keeps working when this is off; the IP is only used in memory. Submissions are included in Tools → Export/Erase Personal Data, matched by their email fields.', 'borsflow-forms' ); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Email delivery', 'borsflow-forms' ); ?></th>
+						<td>
+							<label for="bf-email-async">
+								<input type="checkbox" id="bf-email-async" name="<?php echo esc_attr( $name ); ?>[email_async]" value="1" <?php checked( $s['email_async'] ); ?>>
+								<?php esc_html_e( 'Send notification emails in the background (WP-Cron)', 'borsflow-forms' ); ?>
+							</label>
+							<p class="description"><?php esc_html_e( 'Recommended: a slow mail server never delays the visitor. Turn off only if WP-Cron does not run on this site; emails are then sent during the submission.', 'borsflow-forms' ); ?></p>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e( 'Uninstall', 'borsflow-forms' ); ?></th>
 						<td>
 							<label for="bf-delete-uninstall">
@@ -190,6 +239,17 @@ class BorsFlow_Admin_Settings {
 	}
 
 	/**
+	 * "Set in wp-config.php" note.
+	 *
+	 * @param string $key Setting key.
+	 */
+	private static function constant_note( $key ) {
+		$map = BorsFlow_Settings::constants();
+		/* translators: %s: PHP constant name. */
+		echo esc_html( sprintf( __( 'Set by the %s constant in wp-config.php and cannot be changed here.', 'borsflow-forms' ), $map[ $key ] ) );
+	}
+
+	/**
 	 * Password row for a secret. The stored value is never printed; only a mask.
 	 *
 	 * @param string $key   Setting key.
@@ -200,6 +260,18 @@ class BorsFlow_Admin_Settings {
 		$name  = BorsFlow_Settings::OPTION;
 		$saved = '' !== (string) $s[ $key ];
 		$id    = 'bf-' . str_replace( '_', '-', $key );
+		if ( BorsFlow_Settings::is_constant( $key ) ) {
+			?>
+			<tr>
+				<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>
+				<td>
+					<input type="password" class="regular-text code" id="<?php echo esc_attr( $id ); ?>" value="" disabled placeholder="<?php echo esc_attr( BorsFlow_Settings::mask( $s[ $key ] ) ); ?>">
+					<p class="description"><?php self::constant_note( $key ); ?></p>
+				</td>
+			</tr>
+			<?php
+			return;
+		}
 		?>
 		<tr>
 			<th scope="row"><label for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $label ); ?></label></th>

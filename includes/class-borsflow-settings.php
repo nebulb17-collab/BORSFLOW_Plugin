@@ -28,26 +28,30 @@ class BorsFlow_Settings {
 	 */
 	public static function defaults() {
 		return array(
-			'crm_base_url'       => '',
-			'crm_api_key'        => '',
-			'crm_leads_path'     => '/api/leads',
-			'crm_health_path'    => '/api/health',
-			'crm_timeout'        => 15,
-			'crm_max_attempts'   => 5,
-			'crm_default_source' => 'wordpress',
+			'crm_base_url'         => '',
+			'crm_api_key'          => '',
+			'crm_leads_path'       => '/api/leads',
+			'crm_health_path'      => '/api/health',
+			'crm_timeout'          => 15,
+			'crm_max_attempts'     => 5,
+			'crm_default_source'   => 'wordpress',
 			'crm_default_pipeline' => '',
-			'crm_default_stage'  => '',
-			'recaptcha_site_key' => '',
-			'recaptcha_secret'   => '',
-			'recaptcha_threshold' => 0.5,
-			'turnstile_site_key' => '',
-			'turnstile_secret'   => '',
-			'rate_limit_max'     => 5,
-			'rate_limit_window'  => 10,
-			'upload_max_mb'      => 5,
-			'upload_allowed_ext' => 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv',
-			'retention_days'     => 0,
-			'delete_on_uninstall' => 0,
+			'crm_default_stage'    => '',
+			'recaptcha_site_key'   => '',
+			'recaptcha_secret'     => '',
+			'recaptcha_threshold'  => 0.5,
+			'turnstile_site_key'   => '',
+			'turnstile_secret'     => '',
+			'rate_limit_max'       => 5,
+			'rate_limit_window'    => 10,
+			'upload_max_mb'        => 5,
+			'upload_allowed_ext'   => 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv',
+			'retention_days'       => 0,
+			'delete_on_uninstall'  => 0,
+			'proxy_header'         => '',
+			'token_max_age'        => 48,
+			'store_ip'             => 1,
+			'email_async'          => 1,
 		);
 	}
 
@@ -58,7 +62,53 @@ class BorsFlow_Settings {
 	 */
 	public static function all() {
 		$stored = get_option( self::OPTION, array() );
-		return wp_parse_args( is_array( $stored ) ? $stored : array(), self::defaults() );
+		$all    = wp_parse_args( is_array( $stored ) ? $stored : array(), self::defaults() );
+		foreach ( self::constants() as $key => $constant ) {
+			if ( defined( $constant ) ) {
+				$all[ $key ] = (string) constant( $constant );
+			}
+		}
+		return $all;
+	}
+
+	/**
+	 * Settings that can be pinned in wp-config.php so secrets never touch the database.
+	 *
+	 * @return array<string,string> Setting key => constant name.
+	 */
+	public static function constants() {
+		return array(
+			'crm_base_url'     => 'BORSFLOW_CRM_BASE_URL',
+			'crm_api_key'      => 'BORSFLOW_API_KEY',
+			'recaptcha_secret' => 'BORSFLOW_RECAPTCHA_SECRET',
+			'turnstile_secret' => 'BORSFLOW_TURNSTILE_SECRET',
+		);
+	}
+
+	/**
+	 * Whether a setting is locked by a wp-config.php constant.
+	 *
+	 * @param string $key Setting key.
+	 * @return bool
+	 */
+	public static function is_constant( $key ) {
+		$map = self::constants();
+		return isset( $map[ $key ] ) && defined( $map[ $key ] );
+	}
+
+	/**
+	 * Proxy headers an admin may choose to trust for the visitor IP.
+	 *
+	 * @return array<string,string> $_SERVER key => label.
+	 */
+	public static function proxy_headers() {
+		return array(
+			''                      => __( 'None – use the connection address (REMOTE_ADDR)', 'borsflow-forms' ),
+			'HTTP_CF_CONNECTING_IP' => 'CF-Connecting-IP (Cloudflare)',
+			'HTTP_X_FORWARDED_FOR'  => 'X-Forwarded-For',
+			'HTTP_X_REAL_IP'        => 'X-Real-IP',
+			'HTTP_TRUE_CLIENT_IP'   => 'True-Client-IP (Akamai, Cloudflare Enterprise)',
+		);
 	}
 
 	/**
@@ -101,8 +151,19 @@ class BorsFlow_Settings {
 		$out['upload_allowed_ext']   = self::sanitize_ext_list( $input['upload_allowed_ext'] ?? '' );
 		$out['retention_days']       = absint( $input['retention_days'] ?? 0 );
 		$out['delete_on_uninstall']  = empty( $input['delete_on_uninstall'] ) ? 0 : 1;
+		$header                      = (string) ( $input['proxy_header'] ?? '' );
+		$out['proxy_header']         = array_key_exists( $header, self::proxy_headers() ) ? $header : '';
+		$out['token_max_age']        = min( 24 * 90, absint( $input['token_max_age'] ?? 48 ) );
+		$out['store_ip']             = empty( $input['store_ip'] ) ? 0 : 1;
+		$out['email_async']          = empty( $input['email_async'] ) ? 0 : 1;
+
+		$out['crm_base_url'] = self::is_constant( 'crm_base_url' ) ? '' : $out['crm_base_url'];
 
 		foreach ( self::SECRET_KEYS as $key ) {
+			if ( self::is_constant( $key ) ) {
+				$out[ $key ] = ''; // The constant wins; never copy it into the database.
+				continue;
+			}
 			$submitted = trim( (string) ( $input[ $key ] ?? '' ) );
 			if ( ! empty( $input[ $key . '_clear' ] ) ) {
 				$out[ $key ] = '';
@@ -166,10 +227,10 @@ class BorsFlow_Settings {
 	/**
 	 * Keep only extensions WordPress itself would allow, lower-cased and de-duplicated.
 	 *
-	 * @param string $list Comma separated list.
+	 * @param string $extensions Comma separated list.
 	 * @return string
 	 */
-	private static function sanitize_ext_list( $list ) {
+	private static function sanitize_ext_list( $extensions ) {
 		$wp_allowed = array();
 		foreach ( array_keys( get_allowed_mime_types() ) as $pattern ) {
 			$wp_allowed = array_merge( $wp_allowed, explode( '|', $pattern ) );
@@ -177,7 +238,7 @@ class BorsFlow_Settings {
 		// Never accept types a browser could execute or render as a page, even for admins with unfiltered_html.
 		$denied = array( 'htm', 'html', 'shtml', 'svg', 'svgz', 'xml', 'js', 'css', 'swf', 'php', 'phtml', 'exe' );
 		$exts   = array();
-		foreach ( explode( ',', strtolower( (string) $list ) ) as $ext ) {
+		foreach ( explode( ',', strtolower( (string) $extensions ) ) as $ext ) {
 			$ext = preg_replace( '/[^a-z0-9]/', '', $ext );
 			if ( '' !== $ext && in_array( $ext, $wp_allowed, true ) && ! in_array( $ext, $denied, true ) ) {
 				$exts[] = $ext;

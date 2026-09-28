@@ -182,10 +182,14 @@ class BorsFlow_Form {
 			$field['required'] = $def[3];
 			$starter[]         = $field;
 		}
-		$settings                                  = self::default_settings();
-		$settings['notify']['reply_to_field']      = 'email';
-		$settings['autoresponder']['to_field']     = 'email';
-		$settings['crm']['mapping']                = array( 'name' => 'fullName', 'email' => 'email', 'message' => 'notes' );
+		$settings                              = self::default_settings();
+		$settings['notify']['reply_to_field']  = 'email';
+		$settings['autoresponder']['to_field'] = 'email';
+		$settings['crm']['mapping']            = array(
+			'name'    => 'fullName',
+			'email'   => 'email',
+			'message' => 'notes',
+		);
 		self::save_schema( $id, $starter, $settings );
 		return $id;
 	}
@@ -257,15 +261,31 @@ class BorsFlow_Form {
 				$key  = $base;
 				$n    = 2;
 				while ( isset( $keys[ $key ] ) || in_array( $key, self::reserved_keys(), true ) ) {
-					$key = $base . '_' . $n++;
+					$key = $base . '_' . $n;
+					++$n;
 				}
-				$f['key']       = $key;
-				$keys[ $key ]   = true;
+				$f['key']     = $key;
+				$keys[ $key ] = true;
 			} else {
 				$f['key'] = '';
 			}
 			$out[] = $f;
 		}
+
+		// Rules that point at a field that no longer exists would silently hide or show forever.
+		foreach ( $out as &$f ) {
+			if ( empty( $f['conditions']['rules'] ) ) {
+				continue;
+			}
+			$f['conditions']['rules'] = array_values(
+				array_filter( $f['conditions']['rules'], static fn( $r ) => isset( $keys[ $r['field'] ] ) && $r['field'] !== $f['key'] )
+			);
+			if ( ! $f['conditions']['rules'] ) {
+				$f['conditions']['enabled'] = false;
+			}
+		}
+		unset( $f );
+
 		return $out;
 	}
 
@@ -286,9 +306,9 @@ class BorsFlow_Form {
 	 * @return array
 	 */
 	public static function sanitize_settings( $raw, $fields ) {
-		$raw  = is_array( $raw ) ? $raw : array();
-		$d    = self::default_settings();
-		$keys = wp_list_pluck( array_filter( $fields, static fn( $f ) => '' !== $f['key'] ), 'key' );
+		$raw          = is_array( $raw ) ? $raw : array();
+		$d            = self::default_settings();
+		$keys         = wp_list_pluck( array_filter( $fields, static fn( $f ) => '' !== $f['key'] ), 'key' );
 		$key_or_blank = static fn( $k ) => in_array( $k, $keys, true ) ? $k : '';
 
 		$notify = is_array( $raw['notify'] ?? null ) ? $raw['notify'] : array();
@@ -411,13 +431,13 @@ class BorsFlow_Form {
 			array(
 				'post_type'      => BorsFlow_Post_Type::POST_TYPE,
 				'post_status'    => $enabled_only ? 'publish' : array( 'publish', 'draft' ),
-				'posts_per_page' => 500,
+				'posts_per_page' => 500, // phpcs:ignore WordPress.WP.PostsPerPage.posts_per_page_posts_per_page -- form pickers need every form; sites have few.
 				'orderby'        => 'title',
 				'order'          => 'ASC',
 				'no_found_rows'  => true,
 			)
 		);
-		$out = array();
+		$out   = array();
 		foreach ( $posts as $p ) {
 			/* translators: %d: form ID. */
 			$out[ $p->ID ] = '' !== $p->post_title ? $p->post_title : sprintf( __( 'Form #%d', 'borsflow-forms' ), $p->ID );

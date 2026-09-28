@@ -105,7 +105,7 @@ class BorsFlow_Renderer {
 		++self::$instance;
 		$uid = 'bf' . $form['id'] . '-' . self::$instance;
 		// Anchor for the no-JS redirect (#borsflow-{id}); only the first instance of a form gets it.
-		$anchor = isset( self::$anchored[ $form['id'] ] ) ? '' : 'borsflow-' . $form['id'];
+		$anchor                        = isset( self::$anchored[ $form['id'] ] ) ? '' : 'borsflow-' . $form['id'];
 		self::$anchored[ $form['id'] ] = true;
 
 		// Result of a no-JS submission, carried across the redirect in a short-lived transient.
@@ -121,6 +121,8 @@ class BorsFlow_Renderer {
 
 		$config = array(
 			'rest'        => rest_url( 'borsflow/v1/forms/' . $form['id'] . '/submit' ),
+			'tokenUrl'    => rest_url( 'borsflow/v1/forms/' . $form['id'] . '/token' ),
+			'tokenMaxAge' => BorsFlow_Spam::token_max_age(),
 			'submitText'  => $s['submit_text'],
 			'loadingText' => $s['loading_text'],
 			'captcha'     => self::captcha_config( $s['spam']['captcha'] ),
@@ -137,16 +139,20 @@ class BorsFlow_Renderer {
 		ob_start();
 		?>
 		<div <?php echo $anchor ? 'id="' . esc_attr( $anchor ) . '" ' : ''; ?>class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" style="<?php echo esc_attr( $style_vars ); ?>" data-borsflow-form="<?php echo esc_attr( $form['id'] ); ?>">
-			<div class="bf-status" id="<?php echo esc_attr( $uid ); ?>-status" role="status" aria-live="polite" aria-atomic="true"><?php
+			<div class="bf-status" id="<?php echo esc_attr( $uid ); ?>-status" role="status" aria-live="polite" aria-atomic="true">
+			<?php
 			if ( ! empty( $result['success'] ) ) {
 				echo '<div class="bf-success">' . wp_kses_post( wpautop( $result['message'] ) ) . '</div>';
 			}
-			?></div>
-			<div class="bf-alert" id="<?php echo esc_attr( $uid ); ?>-alert" role="alert"<?php echo empty( $result['message'] ) || ! empty( $result['success'] ) ? ' hidden' : ''; ?>><?php
+			?>
+			</div>
+			<div class="bf-alert" id="<?php echo esc_attr( $uid ); ?>-alert" role="alert"<?php echo empty( $result['message'] ) || ! empty( $result['success'] ) ? ' hidden' : ''; ?>>
+			<?php
 			if ( empty( $result['success'] ) && ! empty( $result['message'] ) ) {
 				echo esc_html( $result['message'] );
 			}
-			?></div>
+			?>
+			</div>
 			<?php if ( empty( $result['success'] ) ) : ?>
 			<form class="bf-form" id="<?php echo esc_attr( $uid ); ?>" method="post" enctype="multipart/form-data" novalidate
 				action="<?php echo esc_url( $preview ? '#' : admin_url( 'admin-post.php' ) ); ?>"
@@ -201,9 +207,9 @@ class BorsFlow_Renderer {
 	 * @return string
 	 */
 	public static function render_field( $f, $uid, $old = array(), $error = '' ) {
-		$type    = $f['type'];
-		$wrap    = array( 'bf-field', 'bf-type-' . $type, 'bf-w-' . $f['width'] );
-		$attrs   = '';
+		$type  = $f['type'];
+		$wrap  = array( 'bf-field', 'bf-type-' . $type, 'bf-w-' . $f['width'] );
+		$attrs = '';
 		if ( '' !== $f['css_class'] ) {
 			$wrap[] = $f['css_class'];
 		}
@@ -247,14 +253,14 @@ class BorsFlow_Renderer {
 
 		// Shared ARIA / validation attributes for single inputs.
 		$common = array(
-			'id'               => $id,
-			'name'             => $name,
-			'aria-describedby' => implode( ' ', $describe ),
-			'aria-invalid'     => '' !== $error ? 'true' : '',
-			'required'         => $f['required'],
-			'aria-required'    => $f['required'] ? 'true' : '',
-			'data-bf-key'      => $f['key'],
-			'data-bf-type'     => $type,
+			'id'                      => $id,
+			'name'                    => $name,
+			'aria-describedby'        => implode( ' ', $describe ),
+			'aria-invalid'            => '' !== $error ? 'true' : '',
+			'required'                => $f['required'],
+			'aria-required'           => $f['required'] ? 'true' : '',
+			'data-bf-key'             => $f['key'],
+			'data-bf-type'            => $type,
 			'data-bf-pattern-message' => $f['pattern_message'],
 		);
 
@@ -266,11 +272,11 @@ class BorsFlow_Renderer {
 		$html  = '';
 
 		if ( $group ) {
-			$html .= '<fieldset class="bf-group" data-bf-key="' . esc_attr( $f['key'] ) . '" data-bf-type="' . esc_attr( $type ) . '"'
+			$html    .= '<fieldset class="bf-group" data-bf-key="' . esc_attr( $f['key'] ) . '" data-bf-type="' . esc_attr( $type ) . '"'
 				. ( $f['required'] ? ' data-bf-required="1"' : '' )
 				. ( $describe ? ' aria-describedby="' . esc_attr( implode( ' ', $describe ) ) . '"' : '' ) . '>';
-			$html .= '<legend class="bf-label">' . esc_html( $label ) . $req_mark . '</legend>';
-			$html .= '<div class="bf-options">';
+			$html    .= '<legend class="bf-label">' . esc_html( $label ) . $req_mark . '</legend>';
+			$html    .= '<div class="bf-options">';
 			$selected = (array) $value;
 			foreach ( $f['options'] as $i => $opt ) {
 				$oid   = $id . '-' . $i;
@@ -314,10 +320,10 @@ class BorsFlow_Renderer {
 		if ( 'textarea' === $type ) {
 			return '<textarea' . self::attrs(
 				$common + array(
-					'rows'        => $f['rows'],
-					'placeholder' => $f['placeholder'],
-					'minlength'   => $f['min_length'],
-					'maxlength'   => $f['max_length'],
+					'rows'            => $f['rows'],
+					'placeholder'     => $f['placeholder'],
+					'minlength'       => $f['min_length'],
+					'maxlength'       => $f['max_length'],
 					'data-bf-pattern' => $f['pattern'],
 				)
 			) . '>' . esc_textarea( is_array( $value ) ? '' : $value ) . '</textarea>';
@@ -348,17 +354,17 @@ class BorsFlow_Renderer {
 				array_merge(
 					$common,
 					array(
-						'name'             => 'bf_file_' . $f['key'],
-						'accept'           => implode( ',', array_map( static fn( $e ) => '.' . $e, $exts ) ),
-						'data-bf-max-size' => BorsFlow_Fields::file_max_bytes( $f ),
+						'name'                   => 'bf_file_' . $f['key'],
+						'accept'                 => implode( ',', array_map( static fn( $e ) => '.' . $e, $exts ) ),
+						'data-bf-max-size'       => BorsFlow_Fields::file_max_bytes( $f ),
 						'data-bf-max-size-label' => size_format( BorsFlow_Fields::file_max_bytes( $f ) ),
-						'data-bf-exts'     => implode( ',', $exts ),
+						'data-bf-exts'           => implode( ',', $exts ),
 					)
 				)
 			) . '>';
 		}
 
-		$html_types = array(
+		$html_types   = array(
 			'text'   => 'text',
 			'email'  => 'email',
 			'phone'  => 'tel',
@@ -509,7 +515,13 @@ class BorsFlow_Renderer {
 		} elseif ( 'turnstile' === $type ) {
 			$key = BorsFlow_Settings::get( 'turnstile_site_key' );
 		}
-		return '' === $key ? array( 'type' => 'none', 'siteKey' => '' ) : array( 'type' => $type, 'siteKey' => $key );
+		return '' === $key ? array(
+			'type'    => 'none',
+			'siteKey' => '',
+		) : array(
+			'type'    => $type,
+			'siteKey' => $key,
+		);
 	}
 
 	/**
@@ -535,8 +547,9 @@ class BorsFlow_Renderer {
 	 * @return array
 	 */
 	private static function fallback_result( $form_id ) {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- token is an unguessable transient key.
-		$token = isset( $_GET['borsflow_result'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', wp_unslash( $_GET['borsflow_result'] ) ) : '';
+		// The token is an unguessable transient key; stripping to [A-Za-z0-9] is the sanitization (sanitize_key would lowercase it).
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$token = isset( $_GET['borsflow_result'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', (string) wp_unslash( $_GET['borsflow_result'] ) ) : '';
 		if ( '' === $token ) {
 			return array();
 		}

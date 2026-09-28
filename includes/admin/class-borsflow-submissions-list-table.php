@@ -124,8 +124,8 @@ class BorsFlow_Submissions_List_Table extends WP_List_Table {
 	 * Load items.
 	 */
 	public function prepare_items() {
-		$per_page = $this->get_items_per_page( 'borsflow_submissions_per_page', 20 );
-		$result   = BorsFlow_Submissions::query(
+		$per_page              = $this->get_items_per_page( 'borsflow_submissions_per_page', 20 );
+		$result                = BorsFlow_Submissions::query(
 			array_merge(
 				$this->filters,
 				array(
@@ -194,7 +194,7 @@ class BorsFlow_Submissions_List_Table extends WP_List_Table {
 		$actions['toggle_read'] = $item['is_read']
 			? sprintf( '<a href="%s">%s</a>', esc_url( BorsFlow_Admin_Submissions::row_action_url( $item['id'], 'mark_unread' ) ), esc_html__( 'Mark unread', 'borsflow-forms' ) )
 			: sprintf( '<a href="%s">%s</a>', esc_url( BorsFlow_Admin_Submissions::row_action_url( $item['id'], 'mark_read' ) ), esc_html__( 'Mark read', 'borsflow-forms' ) );
-		$actions['delete'] = sprintf( '<a href="%s" class="submitdelete borsflow-confirm-delete-sub">%s</a>', esc_url( BorsFlow_Admin_Submissions::row_action_url( $item['id'], 'delete' ) ), esc_html__( 'Delete', 'borsflow-forms' ) );
+		$actions['delete']      = sprintf( '<a href="%s" class="submitdelete borsflow-confirm-delete-sub">%s</a>', esc_url( BorsFlow_Admin_Submissions::row_action_url( $item['id'], 'delete' ) ), esc_html__( 'Delete', 'borsflow-forms' ) );
 
 		return sprintf(
 			'<a class="row-title" href="%s">%s</a><br><span class="description">#%d</span>%s',

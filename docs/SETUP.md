@@ -28,6 +28,17 @@
 3. Click **Test connection**. It sends `GET {base}{health path}` with `Authorization: Bearer <key>` and reports the result inline. It uses whatever is typed in the fields, so you can test before saving.
 4. Optional: change the endpoint paths (defaults are `/api/leads` and `/api/health`), the timeout, max attempts, and the default source, pipeline and stage.
 
+**Keep secrets out of the database (recommended for production).** Define them in `wp-config.php`. The settings screen then shows them as locked, and they are never saved to `wp_options`:
+
+```php
+define( 'BORSFLOW_CRM_BASE_URL', 'https://app.borsflow.com' );
+define( 'BORSFLOW_API_KEY', 'your-api-key' );
+define( 'BORSFLOW_RECAPTCHA_SECRET', '…' );   // optional
+define( 'BORSFLOW_TURNSTILE_SECRET', '…' );   // optional
+```
+
+**Behind Cloudflare, a load balancer or a reverse proxy**, set **Settings → Spam protection → Visitor IP source** to the header your proxy sets (e.g. `CF-Connecting-IP`). Otherwise every visitor appears to come from the proxy's address, and the per-IP rate limit blocks everyone at once. The screen shows the IP it currently detects for you. Only trust a header if all traffic goes through that proxy.
+
 ## 4. Map fields
 
 Open the form → **CRM mapping** tab:
@@ -124,6 +135,8 @@ wp cron event run borsflow_sync_submission     # WP-CLI
 curl -s http://localhost:8888/wp-cron.php      # or just hit wp-cron.php
 ```
 
+Notification emails are also sent from WP-Cron by default (**Settings → Data → Email delivery**), so a slow SMTP server never delays the visitor. The daily maintenance job sends any email whose event was lost. Turn background delivery off only if WP-Cron never runs on the site.
+
 In production, prefer a real cron: `define( 'DISABLE_WP_CRON', true );` plus a system cron hitting `wp-cron.php` every minute.
 
 ### Suggested test pass
@@ -135,6 +148,28 @@ In production, prefer a real cron: `define( 'DISABLE_WP_CRON', true );` plus a s
 5. Disable JavaScript and submit: errors and entered values survive the round trip, and success shows the message.
 6. **Export CSV**, open a detail view, download an uploaded file, and try **Sync Log**.
 
-## 7. Uninstall
+## 7. Automated tests
+
+Everything runs without MySQL or Docker. WordPress core comes from Composer, and the site runs on SQLite in a temp directory.
+
+```bash
+composer install
+composer test          # PHPUnit: validation, conditional logic, submissions, spam checks, sync/backoff, emails, privacy, migrations
+composer lint          # PHPCS: WordPress Coding Standards + PHP 8.0 compatibility
+
+npm ci
+npx playwright install chromium
+npm run test:e2e       # Playwright: front end (incl. no-JS), admin screens, builder drag & drop / rename / delete
+```
+
+The Playwright config starts its own WordPress (port 8890) and mock CRM (port 4010) and seeds a form. The spec files run in order (`01-`, `02-`, `03-`) against one site. GitHub Actions (`.github/workflows/ci.yml`) runs lint, PHPUnit on PHP 8.0–8.3, and the e2e suite on every push and PR.
+
+## 8. Privacy
+
+- Submissions show up in **Tools → Export Personal Data** and **Erase Personal Data**, matched by any email-type field. Erasing deletes the submissions and their uploaded files. Leads already synced must be erased in BorsFlow CRM too; the eraser says so in its result.
+- **Settings → Data → Privacy** can turn off storing IP address and user agent. The rate limit still works, because it uses the IP only in memory.
+- Suggested text for your privacy policy appears under **Settings → Privacy → Policy Guide**.
+
+## 9. Uninstall
 
 Deleting the plugin removes its options, capability, transients and cron events. Forms, submissions, the sync log and uploaded files are deleted **only** if **Settings → Data → Delete all … when the plugin is deleted** is checked.

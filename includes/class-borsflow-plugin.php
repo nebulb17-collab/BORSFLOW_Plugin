@@ -58,6 +58,8 @@ final class BorsFlow_Plugin {
 		add_action( 'admin_post_borsflow_download', array( 'BorsFlow_Uploads', 'handle_download' ) );
 
 		add_action( BorsFlow_Sync::HOOK, array( 'BorsFlow_Sync', 'run' ) );
+		add_action( BorsFlow_Mailer::HOOK, array( 'BorsFlow_Mailer', 'send_queued' ) );
+		add_action( 'init', array( 'BorsFlow_Privacy', 'init' ) );
 		add_action( 'borsflow_daily_maintenance', array( 'BorsFlow_Maintenance', 'run' ) );
 
 		BorsFlow_Elementor::init();

@@ -48,23 +48,23 @@ class BorsFlow_Admin_Builder {
 
 		// Inline JSON (not wp_localize_script) so booleans and numbers keep their types.
 		$data = array(
-			'form'       => BorsFlow_Rest::builder_payload( $form ),
-			'types'      => BorsFlow_Fields::types(),
-			'blanks'     => $blanks,
-			'crmFields'  => BorsFlow_Form::crm_fields(),
-			'crmReady'   => BorsFlow_Crm_Client::is_configured(),
-			'captcha'    => array(
+			'form'        => BorsFlow_Rest::builder_payload( $form ),
+			'types'       => BorsFlow_Fields::types(),
+			'blanks'      => $blanks,
+			'crmFields'   => BorsFlow_Form::crm_fields(),
+			'crmReady'    => BorsFlow_Crm_Client::is_configured(),
+			'captcha'     => array(
 				'recaptcha' => '' !== BorsFlow_Settings::get( 'recaptcha_site_key' ) && '' !== BorsFlow_Settings::get( 'recaptcha_secret' ),
 				'turnstile' => '' !== BorsFlow_Settings::get( 'turnstile_site_key' ) && '' !== BorsFlow_Settings::get( 'turnstile_secret' ),
 			),
-			'reserved'   => BorsFlow_Form::reserved_keys(),
-			'routes'     => array(
+			'reserved'    => BorsFlow_Form::reserved_keys(),
+			'routes'      => array(
 				'save'    => '/borsflow/v1/admin/forms/' . $form['id'],
 				'preview' => '/borsflow/v1/admin/preview',
 			),
-			'previewCss' => BORSFLOW_URL . 'assets/css/frontend.css?ver=' . BORSFLOW_VERSION,
-			'previewJs'  => BORSFLOW_URL . 'assets/js/frontend.js?ver=' . BORSFLOW_VERSION,
-			'messages'   => BorsFlow_Fields::messages(),
+			'previewCss'  => BORSFLOW_URL . 'assets/css/frontend.css?ver=' . BORSFLOW_VERSION,
+			'previewJs'   => BORSFLOW_URL . 'assets/js/frontend.js?ver=' . BORSFLOW_VERSION,
+			'messages'    => BorsFlow_Fields::messages(),
 			'settingsUrl' => admin_url( 'admin.php?page=borsflow-settings' ),
 		);
 		wp_add_inline_script( 'borsflow-builder', 'window.borsflowBuilder = ' . wp_json_encode( $data ) . ';', 'before' );
