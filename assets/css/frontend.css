@@ -1,0 +1,311 @@
+/**
+ * BorsFlow Forms – front-end styles.
+ *
+ * Everything is scoped to .borsflow and driven by CSS custom properties.
+ * Per-form options only set --bf-accent and --bf-radius on the wrapper.
+ * Override any variable from your theme, e.g. `.borsflow { --bf-gap: 24px; }`.
+ */
+
+.borsflow {
+	--bf-accent: #2271b1;
+	--bf-accent-contrast: #fff;
+	--bf-radius: 4px;
+	--bf-gap: 16px;
+	--bf-pad-y: 0.55em;
+	--bf-pad-x: 0.75em;
+	--bf-font-size: 1rem;
+	--bf-border: #8c8f94;
+	--bf-field-bg: #fff;
+	--bf-text: inherit;
+	--bf-muted: #50575e;
+	--bf-error: #b32d2e;
+	--bf-error-bg: #fcf0f1;
+	--bf-success-bg: #f0f6fc;
+	position: relative;
+	max-width: 100%;
+	color: var(--bf-text);
+}
+
+.borsflow.bf-size-sm {
+	--bf-pad-y: 0.35em;
+	--bf-pad-x: 0.6em;
+	--bf-font-size: 0.9rem;
+	--bf-gap: 12px;
+}
+
+.borsflow.bf-size-lg {
+	--bf-pad-y: 0.75em;
+	--bf-pad-x: 1em;
+	--bf-font-size: 1.125rem;
+	--bf-gap: 20px;
+}
+
+/* Layout: a 6-column grid so full / half / third widths flow into rows. */
+.borsflow .bf-grid {
+	display: grid;
+	grid-template-columns: repeat(6, minmax(0, 1fr));
+	gap: var(--bf-gap);
+}
+
+.borsflow .bf-field {
+	grid-column: span 6;
+	min-width: 0;
+	margin: 0;
+}
+
+.borsflow .bf-w-half {
+	grid-column: span 3;
+}
+
+.borsflow .bf-w-third {
+	grid-column: span 2;
+}
+
+@media (max-width: 600px) {
+	.borsflow .bf-w-half,
+	.borsflow .bf-w-third {
+		grid-column: span 6;
+	}
+}
+
+.borsflow [hidden] {
+	display: none !important;
+}
+
+/* Labels, help and errors. */
+.borsflow .bf-label {
+	display: block;
+	margin: 0 0 0.35em;
+	padding: 0;
+	font-weight: 600;
+	font-size: var(--bf-font-size);
+}
+
+.borsflow .bf-required {
+	color: var(--bf-error);
+}
+
+.borsflow .bf-help,
+.borsflow .bf-error {
+	margin: 0.35em 0 0;
+	font-size: 0.875em;
+}
+
+.borsflow .bf-help {
+	color: var(--bf-muted);
+}
+
+.borsflow .bf-error {
+	color: var(--bf-error);
+	font-weight: 600;
+}
+
+.borsflow .bf-heading {
+	margin: 0.5em 0 0;
+}
+
+.borsflow .bf-html > :first-child {
+	margin-top: 0;
+}
+
+.borsflow .bf-html > :last-child {
+	margin-bottom: 0;
+}
+
+/* Controls. */
+.borsflow input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.borsflow select,
+.borsflow textarea {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 100%;
+	border-radius: var(--bf-radius);
+	font-family: inherit;
+	font-size: var(--bf-font-size);
+}
+
+.borsflow input[type="file"] {
+	max-width: 100%;
+	font-size: var(--bf-font-size);
+}
+
+.borsflow input[type="checkbox"],
+.borsflow input[type="radio"] {
+	accent-color: var(--bf-accent);
+	width: 1.1em;
+	height: 1.1em;
+	margin: 0.2em 0 0;
+	flex: none;
+}
+
+.borsflow .bf-group {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	min-width: 0;
+}
+
+.borsflow .bf-group legend {
+	padding: 0;
+}
+
+.borsflow .bf-option {
+	display: flex;
+	gap: 0.5em;
+	align-items: flex-start;
+	margin: 0.3em 0;
+	font-weight: normal;
+	font-size: var(--bf-font-size);
+	cursor: pointer;
+}
+
+.borsflow .bf-has-error input,
+.borsflow .bf-has-error select,
+.borsflow .bf-has-error textarea {
+	border-color: var(--bf-error) !important;
+}
+
+.borsflow input:focus-visible,
+.borsflow select:focus-visible,
+.borsflow textarea:focus-visible,
+.borsflow .bf-submit:focus-visible {
+	outline: 2px solid var(--bf-accent);
+	outline-offset: 2px;
+}
+
+/* Submit. */
+.borsflow .bf-actions {
+	margin-top: var(--bf-gap);
+}
+
+.borsflow .bf-submit {
+	display: inline-block;
+	padding: var(--bf-pad-y) calc(var(--bf-pad-x) * 2);
+	border: 0;
+	border-radius: var(--bf-radius);
+	background: var(--bf-accent);
+	color: var(--bf-accent-contrast);
+	font-family: inherit;
+	font-size: var(--bf-font-size);
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+.borsflow .bf-submit:hover {
+	filter: brightness(0.92);
+}
+
+.borsflow .bf-submit:disabled {
+	opacity: 0.7;
+	cursor: progress;
+}
+
+.borsflow .bf-captcha {
+	margin-top: var(--bf-gap);
+}
+
+/* Status and alerts. */
+.borsflow .bf-success,
+.borsflow .bf-alert {
+	padding: 0.75em 1em;
+	border-left: 4px solid var(--bf-accent);
+	border-radius: var(--bf-radius);
+	background: var(--bf-success-bg);
+}
+
+.borsflow .bf-success {
+	margin-bottom: var(--bf-gap);
+}
+
+.borsflow .bf-success > :first-child {
+	margin-top: 0;
+}
+
+.borsflow .bf-success > :last-child {
+	margin-bottom: 0;
+}
+
+.borsflow .bf-status:focus {
+	outline: none;
+}
+
+.borsflow .bf-alert {
+	margin-bottom: var(--bf-gap);
+	border-left-color: var(--bf-error);
+	background: var(--bf-error-bg);
+	color: var(--bf-error);
+}
+
+/* Honeypot: off-screen, not display:none (some bots skip hidden fields). */
+.borsflow .bf-hp {
+	position: absolute !important;
+	left: -10000px !important;
+	top: auto !important;
+	width: 1px !important;
+	height: 1px !important;
+	overflow: hidden !important;
+}
+
+/* Preset: inherit theme. Only layout, accent and states; inputs keep the theme's look. */
+
+/* Preset: light card. */
+.borsflow.bf-preset-card {
+	padding: calc(var(--bf-gap) * 1.5);
+	border: 1px solid #dcdcde;
+	border-radius: calc(var(--bf-radius) * 2);
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+	color: #1d2327;
+}
+
+.borsflow.bf-preset-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.borsflow.bf-preset-card select,
+.borsflow.bf-preset-card textarea {
+	padding: var(--bf-pad-y) var(--bf-pad-x);
+	border: 1px solid var(--bf-border);
+	background: var(--bf-field-bg);
+	color: #1d2327;
+	line-height: 1.4;
+	box-shadow: none;
+}
+
+.borsflow.bf-preset-card input:focus,
+.borsflow.bf-preset-card select:focus,
+.borsflow.bf-preset-card textarea:focus {
+	border-color: var(--bf-accent);
+	box-shadow: 0 0 0 1px var(--bf-accent);
+	outline: none;
+}
+
+/* Preset: minimal (underlined fields, transparent background). */
+.borsflow.bf-preset-minimal input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.borsflow.bf-preset-minimal select,
+.borsflow.bf-preset-minimal textarea {
+	padding: var(--bf-pad-y) 0;
+	border: 0;
+	border-bottom: 1px solid var(--bf-border);
+	border-radius: 0;
+	background: transparent;
+	color: inherit;
+	line-height: 1.4;
+	box-shadow: none;
+}
+
+.borsflow.bf-preset-minimal input:focus,
+.borsflow.bf-preset-minimal select:focus,
+.borsflow.bf-preset-minimal textarea:focus {
+	border-bottom-color: var(--bf-accent);
+	box-shadow: 0 1px 0 0 var(--bf-accent);
+	outline: none;
+}
+
+.borsflow.bf-preset-minimal select[multiple] {
+	border: 1px solid var(--bf-border);
+}
+
+.borsflow-missing {
+	padding: 0.75em 1em;
+	border: 1px dashed #c3c4c7;
+	color: #50575e;
+}
